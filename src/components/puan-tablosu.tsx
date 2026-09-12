@@ -74,7 +74,7 @@ export function PuanTablosu({
       )}
 
       <p className="border-b border-line px-4 py-2 font-[family-name:var(--font-data)] text-xs uppercase tracking-wider text-muted md:hidden">
-        Tabloyu yana kaydırarak tüm sütunları görebilirsin →
+        Sıra ve takım adı sabit — tabloyu yana kaydır →
       </p>
 
       <div className="overflow-x-auto">
@@ -100,9 +100,15 @@ export function PuanTablosu({
                 <th
                   key={s.h}
                   scope="col"
-                  className={`px-2 py-3 text-[13px] font-semibold uppercase tracking-[0.14em] ${
-                    i === 1 ? "pl-4 text-left" : "text-center"
-                  } ${s.gizle ? "hidden md:table-cell" : ""}`}
+                  className={`bg-ink-2 px-2 py-3 text-[13px] font-semibold uppercase tracking-[0.14em] ${
+                    i === 1 ? "pl-2 text-left md:pl-4" : "text-center"
+                  } ${
+                    i === 0
+                      ? "sticky left-0 z-20 w-10 md:static"
+                      : i === 1
+                        ? "sticky left-10 z-20 shadow-[2px_0_0_0_rgba(0,0,0,0.12)] md:static md:shadow-none"
+                        : ""
+                  }`}
                 >
                   {s.h}
                 </th>
@@ -113,18 +119,18 @@ export function PuanTablosu({
             {gosterilecek.map((t) => {
               const r = rozet(t.ad);
               return (
-                <tr key={t.slug} className="border-b border-line transition-colors hover:bg-[#eaf4eb]">
+                <tr key={t.slug} className="group border-b border-line transition-colors hover:bg-[#eaf4eb]">
                   <td
-                    className={`w-12 px-2 py-2.5 text-center font-[family-name:var(--font-display)] text-lg ${
+                    className={`sticky left-0 z-10 w-10 bg-white px-2 py-2.5 text-center font-[family-name:var(--font-display)] text-lg transition-colors group-hover:bg-[#eaf4eb] md:static md:w-12 ${
                       t.sira === 1 ? "text-gold" : t.sira <= 3 ? "text-brand" : "text-muted"
                     }`}
                   >
                     {t.sira}
                   </td>
-                  <td className="py-2.5 pl-2 text-left md:pl-4">
+                  <td className="sticky left-10 z-10 max-w-[168px] bg-white py-2.5 pr-2 pl-2 text-left shadow-[2px_0_0_0_rgba(0,0,0,0.08)] transition-colors group-hover:bg-[#eaf4eb] md:static md:max-w-none md:pl-4 md:shadow-none">
                     <Link
                       href={`/takim/${t.slug}`}
-                      className="flex items-center gap-2 text-[15px] font-bold hover:text-brand md:gap-2.5 md:text-[17px]"
+                      className="flex items-center gap-2 text-[14px] font-bold hover:text-brand md:gap-2.5 md:text-[17px]"
                     >
                       {t.logoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -145,7 +151,7 @@ export function PuanTablosu({
                           {r.harf}
                         </span>
                       )}
-                      {t.ad}
+                      <span className="truncate">{t.ad}</span>
                     </Link>
                   </td>
                   {[t.O, t.G, t.B, t.M, t.A, t.Y].map((v, i) => (

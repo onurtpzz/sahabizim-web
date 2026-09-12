@@ -127,7 +127,7 @@ export function PuanTablosu({
                   >
                     {t.sira}
                   </td>
-                  <td className="sticky left-8 z-10 w-[124px] max-w-[124px] bg-white py-2.5 pr-1.5 pl-1.5 text-left shadow-[2px_0_0_0_rgba(0,0,0,0.08)] transition-colors group-hover:bg-[#eaf4eb] md:static md:left-auto md:w-auto md:max-w-none md:pr-2 md:pl-4 md:shadow-none">
+                  <td className="sticky left-8 z-10 w-[156px] max-w-[156px] bg-white py-2.5 pr-1.5 pl-1.5 text-left shadow-[2px_0_0_0_rgba(0,0,0,0.08)] transition-colors group-hover:bg-[#eaf4eb] md:static md:left-auto md:w-auto md:max-w-none md:pr-2 md:pl-4 md:shadow-none">
                     <Link
                       href={`/takim/${t.slug}`}
                       className="flex items-center gap-1.5 text-[13px] leading-tight font-bold hover:text-brand md:gap-2.5 md:text-[17px]"

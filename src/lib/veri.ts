@@ -111,7 +111,11 @@ export async function getSlotGorseli(slot: string, yedek: string): Promise<strin
   return data?.[0]?.url ?? yedek;
 }
 
-/** Galeri kayıtları. Veritabanı boşsa yedek listeyi döndürür. */
+/**
+ * Galeri kayıtları. Veritabanında görsel varsa sadece onlar gösterilir.
+ * Hiç yoksa hazır gelen örnek fotoğraflar gösterilir — bunlar panelden
+ * (`varsayilan_gorseller` ayarı) tamamen kapatılabilir.
+ */
 export async function getGaleri(yedek: Gorsel[]): Promise<Gorsel[]> {
   if (!supabase) return yedek;
   const { data, error } = await supabase
@@ -121,7 +125,10 @@ export async function getGaleri(yedek: Gorsel[]): Promise<Gorsel[]> {
     .eq("yayinda", true)
     .order("sira");
 
-  if (error || !data?.length) return yedek;
+  if (error || !data?.length) {
+    const ayarlar = await getAyarlar();
+    return ayarlar.varsayilan_gorseller === "hayir" ? [] : yedek;
+  }
 
   return data.map((g) => ({
     id: g.id as string,
@@ -165,6 +172,14 @@ export const VARSAYILAN_ICERIK = {
   galeri_metin: "Maç kareleri panelden yüklendikçe bu sayfa albümlere ayrılacak.",
   footer_metin: "Sporu sadece bir oyun değil, bir yaşam biçimi olarak görenlerin sahası.",
   site_aciklama: "SahaBizim Ligi'nin güncel puan durumu, fikstürü ve haftanın maçları.",
+  bizkimiz_baslik: "Ruhum sahada",
+  bizkimiz_ozet: "Sporu bir oyun değil, bir yaşam biçimi olarak görenlerin sahası.",
+  bizkimiz_metin:
+    "SahaBizim, İstanbul'da halı saha futbolunu düzenli bir lig düzenine kavuşturmak için kuruldu. Amacımız basit: maç ayarlamak için grup grup mesaj dolaşmasın, kim kaç puanda belli olsun, oynamak isteyen herkes bir takım bulabilsin.\n\nBugün tek çatı altında altmışın üzerinde takım var. Her hafta sahaya çıkıyor, sonuçları giriyor, puan durumunu güncelliyoruz.\n\nBizim için asıl mesele skor değil, sahada geçen o iki saat. Gençleri madde ve alkol bağımlılığına karşı sahaya çağırmamızın sebebi de bu: oyunun kendisi en iyi korumadır.",
+  bizkimiz_deger1: "Herkese açık|Kadro, tecrübe veya bütçe fark etmez. Takımını kur, gel.",
+  bizkimiz_deger2: "Düzenli lig|Fikstür, skor, puan durumu — hepsi kayıt altında ve herkese açık.",
+  bizkimiz_deger3: "Saha içi saygı|Rekabet sahada kalır. Küfür, kavga ve ayrımcılık hoş görülmez.",
+  varsayilan_gorseller: "evet",
   sosyal_baslik: "Sahadan kareler",
   sosyal_metin: "Instagram ve YouTube'da paylaştığımız son içerikler.",
   whatsapp: "905363771767",
@@ -213,4 +228,63 @@ export async function getSosyalIcerikler(limit = 6): Promise<SosyalIcerik[]> {
     .limit(limit);
   if (error || !data) return [];
   return data as SosyalIcerik[];
+}
+
+// ---------------------------------------------------------------------
+// Fikstür
+// ---------------------------------------------------------------------
+
+export type FiksturMaci = {
+  id: string;
+  tarih: string | null;
+  durum: "oynanacak" | "oynandi" | "ertelendi" | "hukmen";
+  ev: { ad: string; slug: string; logoUrl: string | null };
+  dep: { ad: string; slug: string; logoUrl: string | null };
+  evSkor: number | null;
+  depSkor: number | null;
+};
+
+type MacSatiriDB = {
+  id: string;
+  oynanma: string | null;
+  durum: FiksturMaci["durum"];
+  ev_skor: number | null;
+  dep_skor: number | null;
+  ev: { ad: string; slug: string; logo_url: string | null } | null;
+  dep: { ad: string; slug: string; logo_url: string | null } | null;
+};
+
+/** Aktif sezonun maçları — en yeniden eskiye. */
+export async function getMaclar(): Promise<FiksturMaci[]> {
+  if (!supabase) return [];
+
+  const { data: sezon } = await supabase
+    .from("sezonlar")
+    .select("id")
+    .eq("aktif", true)
+    .limit(1);
+  const sezonId = sezon?.[0]?.id;
+  if (!sezonId) return [];
+
+  const { data, error } = await supabase
+    .from("maclar")
+    .select(
+      "id, oynanma, durum, ev_skor, dep_skor, ev:ev_id(ad, slug, logo_url), dep:dep_id(ad, slug, logo_url)",
+    )
+    .eq("sezon_id", sezonId)
+    .order("oynanma", { ascending: false });
+
+  if (error || !data) return [];
+
+  return (data as unknown as MacSatiriDB[])
+    .filter((m) => m.ev && m.dep)
+    .map((m) => ({
+      id: m.id,
+      tarih: m.oynanma,
+      durum: m.durum,
+      evSkor: m.ev_skor,
+      depSkor: m.dep_skor,
+      ev: { ad: m.ev!.ad, slug: m.ev!.slug, logoUrl: m.ev!.logo_url },
+      dep: { ad: m.dep!.ad, slug: m.dep!.slug, logoUrl: m.dep!.logo_url },
+    }));
 }

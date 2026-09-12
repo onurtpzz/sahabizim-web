@@ -36,6 +36,7 @@ export async function SiteFooter() {
               <li><Link href="/puan-durumu" className="hover:text-brand-lite">Puan Durumu</Link></li>
               <li><Link href="/fikstur" className="hover:text-brand-lite">Fikstür</Link></li>
               <li><Link href="/takimlar" className="hover:text-brand-lite">Takımlar</Link></li>
+              <li><Link href="/biz-kimiz" className="hover:text-brand-lite">Biz Kimiz</Link></li>
             </ul>
           </div>
 

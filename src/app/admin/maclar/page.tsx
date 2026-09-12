@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alan, Dugme, Girdi, Panel, Secim, Uyari } from "@/components/admin/ui";
+import { Alan, Dugme, Girdi, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
 import {
   aktifSezon,
   macEkle,
@@ -161,8 +161,9 @@ function MacSatiri({
           : "Tarih yok"}
       </p>
 
-      <div className="grid grid-cols-[1fr_56px_16px_56px_1fr] items-center gap-2">
-        <span className="truncate text-right font-[family-name:var(--font-data)] font-semibold">
+      {/* Mobilde her takım kendi skorunun yanında; masaüstünde klasik karşılaşma dizilimi */}
+      <div className="grid grid-cols-[1fr_60px] items-center gap-2 md:grid-cols-[1fr_56px_16px_56px_1fr]">
+        <span className="truncate font-[family-name:var(--font-data)] font-semibold md:order-1 md:text-right">
           {adlar[mac.ev_id] ?? "?"}
         </span>
         <Girdi
@@ -170,19 +171,19 @@ function MacSatiri({
           inputMode="numeric"
           value={ev}
           onChange={(e) => setEv(e.target.value.replace(/\D/g, ""))}
-          className="text-center font-[family-name:var(--font-display)] text-xl"
+          className="text-center font-[family-name:var(--font-display)] text-xl md:order-2"
         />
-        <span className="text-center text-muted-dark">–</span>
+        <span className="truncate font-[family-name:var(--font-data)] font-semibold md:order-5">
+          {adlar[mac.dep_id] ?? "?"}
+        </span>
         <Girdi
           aria-label="Deplasman skoru"
           inputMode="numeric"
           value={dep}
           onChange={(e) => setDep(e.target.value.replace(/\D/g, ""))}
-          className="text-center font-[family-name:var(--font-display)] text-xl"
+          className="text-center font-[family-name:var(--font-display)] text-xl md:order-4"
         />
-        <span className="truncate font-[family-name:var(--font-data)] font-semibold">
-          {adlar[mac.dep_id] ?? "?"}
-        </span>
+        <span className="hidden text-center text-muted-dark md:order-3 md:block">–</span>
       </div>
 
       <div className="flex justify-end gap-2">
@@ -251,39 +252,39 @@ function YeniMac({
           </Alan>
         </div>
 
-        <div className="grid items-end gap-3 md:grid-cols-[1fr_80px_80px_1fr]">
-          <Alan etiket="Ev sahibi">
-            <Secim value={evId} onChange={(e) => setEvId(e.target.value)}>
-              <option value="">Takım seç</option>
-              {takimlar.map((t) => (
-                <option key={t.id} value={t.id}>{t.ad}</option>
-              ))}
-            </Secim>
-          </Alan>
-          <Alan etiket="Skor">
-            <Girdi
-              inputMode="numeric"
-              value={ev}
-              onChange={(e) => setEv(e.target.value.replace(/\D/g, ""))}
-              className="text-center font-[family-name:var(--font-display)] text-xl"
-            />
-          </Alan>
-          <Alan etiket="Skor">
-            <Girdi
-              inputMode="numeric"
-              value={dep}
-              onChange={(e) => setDep(e.target.value.replace(/\D/g, ""))}
-              className="text-center font-[family-name:var(--font-display)] text-xl"
-            />
-          </Alan>
-          <Alan etiket="Deplasman">
-            <Secim value={depId} onChange={(e) => setDepId(e.target.value)}>
-              <option value="">Takım seç</option>
-              {takimlar.map((t) => (
-                <option key={t.id} value={t.id}>{t.ad}</option>
-              ))}
-            </Secim>
-          </Alan>
+        {/* Mobilde: her takım kendi skoruyla aynı satırda.
+            Masaüstünde: ev · skor · skor · deplasman (order sınıflarıyla). */}
+        <div className="grid grid-cols-[1fr_84px] items-end gap-3 md:grid-cols-[1fr_80px_80px_1fr]">
+          <div className="md:order-1">
+            <Alan etiket="Ev sahibi">
+              <TakimSecici takimlar={takimlar} deger={evId} degistir={setEvId} />
+            </Alan>
+          </div>
+          <div className="md:order-2">
+            <Alan etiket="Skor">
+              <Girdi
+                inputMode="numeric"
+                value={ev}
+                onChange={(e) => setEv(e.target.value.replace(/\D/g, ""))}
+                className="text-center font-[family-name:var(--font-display)] text-xl"
+              />
+            </Alan>
+          </div>
+          <div className="md:order-4">
+            <Alan etiket="Deplasman">
+              <TakimSecici takimlar={takimlar} deger={depId} degistir={setDepId} />
+            </Alan>
+          </div>
+          <div className="md:order-3">
+            <Alan etiket="Skor">
+              <Girdi
+                inputMode="numeric"
+                value={dep}
+                onChange={(e) => setDep(e.target.value.replace(/\D/g, ""))}
+                className="text-center font-[family-name:var(--font-display)] text-xl"
+              />
+            </Alan>
+          </div>
         </div>
 
         <div>

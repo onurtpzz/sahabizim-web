@@ -27,6 +27,18 @@ const GRUPLAR: { ad: string; not?: string; anahtarlar: string[] }[] = [
     anahtarlar: ["katil_baslik", "katil_metin", "katil_maddeler"],
   },
   {
+    ad: "Biz Kimiz sayfası",
+    not: "Ana metinde paragrafları boş satır bırakarak ayır. Değerlerde biçim: Başlık|Açıklama",
+    anahtarlar: [
+      "bizkimiz_baslik",
+      "bizkimiz_ozet",
+      "bizkimiz_metin",
+      "bizkimiz_deger1",
+      "bizkimiz_deger2",
+      "bizkimiz_deger3",
+    ],
+  },
+  {
     ad: "Diğer sayfalar",
     anahtarlar: [
       "sosyal_baslik",

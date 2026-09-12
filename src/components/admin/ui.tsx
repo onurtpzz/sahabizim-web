@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 export function Panel({
   baslik,
@@ -106,5 +106,89 @@ export function Uyari({
   } as const;
   return (
     <p className={`rounded border px-4 py-3 text-sm ${stiller[tur]}`}>{children}</p>
+  );
+}
+
+/**
+ * Aranabilir takım seçici. 61 takım arasında listeyi kaydırmak yerine
+ * birkaç harf yazıp seçmeyi sağlar ("cur" → CURCUNA FC).
+ */
+export function TakimSecici({
+  takimlar,
+  deger,
+  degistir,
+  yerTutucu = "Takım ara veya seç",
+}: {
+  takimlar: { id: string; ad: string }[];
+  deger: string;
+  degistir: (id: string) => void;
+  yerTutucu?: string;
+}) {
+  const [metin, setMetin] = useState("");
+  const [acik, setAcik] = useState(false);
+  const sarmal = useRef<HTMLDivElement>(null);
+
+  const secili = takimlar.find((t) => t.id === deger);
+
+  useEffect(() => {
+    function disariTikla(e: MouseEvent) {
+      if (sarmal.current && !sarmal.current.contains(e.target as Node)) setAcik(false);
+    }
+    document.addEventListener("mousedown", disariTikla);
+    return () => document.removeEventListener("mousedown", disariTikla);
+  }, []);
+
+  const arama = metin.trim().toLocaleLowerCase("tr");
+  const liste = arama
+    ? takimlar.filter((t) => t.ad.toLocaleLowerCase("tr").includes(arama)).slice(0, 12)
+    : takimlar.slice(0, 12);
+
+  return (
+    <div ref={sarmal} className="relative">
+      <input
+        type="text"
+        value={acik ? metin : (secili?.ad ?? "")}
+        placeholder={yerTutucu}
+        onFocus={() => {
+          setMetin("");
+          setAcik(true);
+        }}
+        onChange={(e) => {
+          setMetin(e.target.value);
+          setAcik(true);
+        }}
+        className="w-full rounded-sm border border-white/15 bg-[#07200f] px-3 py-2.5 text-white placeholder:text-white/30 focus:border-brand-lite"
+      />
+
+      {acik && (
+        <ul className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-sm border border-white/20 bg-[#07200f] shadow-lg">
+          {liste.length === 0 && (
+            <li className="px-3 py-2.5 text-sm text-muted-dark">Eşleşen takım yok</li>
+          )}
+          {liste.map((t) => (
+            <li key={t.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  degistir(t.id);
+                  setAcik(false);
+                  setMetin("");
+                }}
+                className={`block w-full px-3 py-2.5 text-left font-[family-name:var(--font-data)] text-[15px] hover:bg-white/10 ${
+                  t.id === deger ? "text-brand-lite" : "text-white"
+                }`}
+              >
+                {t.ad}
+              </button>
+            </li>
+          ))}
+          {!arama && takimlar.length > liste.length && (
+            <li className="px-3 py-2 text-xs text-muted-dark">
+              Aramak için yazmaya başla — {takimlar.length} takım var
+            </li>
+          )}
+        </ul>
+      )}
+    </div>
   );
 }

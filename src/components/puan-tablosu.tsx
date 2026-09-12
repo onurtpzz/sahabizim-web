@@ -73,8 +73,12 @@ export function PuanTablosu({
         </div>
       )}
 
+      <p className="border-b border-line px-4 py-2 font-[family-name:var(--font-data)] text-xs uppercase tracking-wider text-muted md:hidden">
+        Tabloyu yana kaydırarak tüm sütunları görebilirsin →
+      </p>
+
       <div className="overflow-x-auto">
-        <table className="w-full min-w-0 border-collapse font-[family-name:var(--font-data)] text-[17px] md:min-w-[660px]">
+        <table className="w-full min-w-[680px] border-collapse font-[family-name:var(--font-data)] text-[17px]">
           <caption className="sr-only">
             SahaBizim Ligi puan durumu — puan, averaj ve atılan gole göre sıralı
           </caption>
@@ -84,14 +88,14 @@ export function PuanTablosu({
                 { h: "#", gizle: false },
                 { h: "Takım", gizle: false },
                 { h: "O", gizle: false },
-                { h: "G", gizle: true },
-                { h: "B", gizle: true },
-                { h: "M", gizle: true },
-                { h: "A", gizle: true },
-                { h: "Y", gizle: true },
+                { h: "G", gizle: false },
+                { h: "B", gizle: false },
+                { h: "M", gizle: false },
+                { h: "A", gizle: false },
+                { h: "Y", gizle: false },
                 { h: "AV", gizle: false },
                 { h: "P", gizle: false },
-                { h: "Son 3", gizle: true },
+                { h: "Son 3", gizle: false },
               ].map((s, i) => (
                 <th
                   key={s.h}
@@ -145,12 +149,7 @@ export function PuanTablosu({
                     </Link>
                   </td>
                   {[t.O, t.G, t.B, t.M, t.A, t.Y].map((v, i) => (
-                    <td
-                      key={i}
-                      className={`tabular px-2 py-2.5 text-center font-semibold ${
-                        i > 0 ? "hidden md:table-cell" : ""
-                      }`}
-                    >
+                    <td key={i} className="tabular px-2 py-2.5 text-center font-semibold">
                       {t.oynadi ? v : "–"}
                     </td>
                   ))}
@@ -160,7 +159,7 @@ export function PuanTablosu({
                   <td className="tabular px-2 py-2.5 text-center font-[family-name:var(--font-display)] text-xl text-ink">
                     {t.oynadi ? t.P : "–"}
                   </td>
-                  <td className="hidden px-2 py-2.5 md:table-cell">
+                  <td className="px-2 py-2.5">
                     <Form son={t.son} />
                   </td>
                 </tr>

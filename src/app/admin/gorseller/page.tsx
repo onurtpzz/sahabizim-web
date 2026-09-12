@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Alan, Dugme, Girdi, Panel, Secim, Uyari } from "@/components/admin/ui";
 import {
+  ayarKaydet,
+  ayarlariGetir,
   dosyaYukle,
   gorselEkle,
   gorselGuncelle,
@@ -16,16 +18,21 @@ const SLOTLAR = [
   { deger: "hero", ad: "Anasayfa büyük görsel", tavsiye: "1920 × 1080 px, koyu bir saha/stadyum fotoğrafı" },
   { deger: "kampanya", ad: "Kampanya bandı arka planı", tavsiye: "1600 × 900 px" },
   { deger: "kampanya-yan", ad: "Kampanya bandı yan görseli", tavsiye: "1400 × 950 px" },
+  { deger: "bizkimiz", ad: "Biz Kimiz sayfası üst görseli", tavsiye: "1600 × 900 px" },
 ];
 
 export default function AdminGorseller() {
   const [kayitlar, setKayitlar] = useState<GorselKaydi[]>([]);
   const [mesaj, setMesaj] = useState<{ tur: "basari" | "hata"; metin: string } | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [varsayilanlar, setVarsayilanlar] = useState(true);
 
   async function yenile() {
     try {
       setKayitlar(await gorselleriGetir());
+      const ayarlar = await ayarlariGetir();
+      const a = ayarlar.find((x) => x.anahtar === "varsayilan_gorseller");
+      if (a) setVarsayilanlar(a.deger !== "hayir");
     } catch (e) {
       setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Görseller okunamadı." });
     }
@@ -45,6 +52,26 @@ export default function AdminGorseller() {
       await yenile();
     } catch (e) {
       setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Yüklenemedi." });
+    }
+  }
+
+  async function siraDegistir(g: GorselKaydi, yon: -1 | 1) {
+    await gorselGuncelle(g.id, { sira: g.sira + yon });
+    await yenile();
+  }
+
+  async function varsayilanDegistir(yeni: boolean) {
+    setVarsayilanlar(yeni);
+    try {
+      await ayarKaydet("varsayilan_gorseller", yeni ? "evet" : "hayir");
+      setMesaj({
+        tur: "basari",
+        metin: yeni
+          ? "Hazır fotoğraflar, galeri boşken gösterilecek."
+          : "Hazır fotoğraflar tamamen kapatıldı.",
+      });
+    } catch (e) {
+      setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Kaydedilemedi." });
     }
   }
 
@@ -119,6 +146,27 @@ export default function AdminGorseller() {
 
       <GaleriYukle yukle={yukle} />
 
+      <Panel baslik="Hazır gelen fotoğraflar">
+        <div className="grid gap-3 p-4">
+          <label className="flex items-start gap-3 text-sm text-[#cfe0d5]">
+            <input
+              id="varsayilanlar"
+              type="checkbox"
+              checked={varsayilanlar}
+              onChange={(e) => varsayilanDegistir(e.target.checked)}
+              className="mt-0.5 h-4 w-4"
+            />
+            <span>
+              Galeri boşken hazır gelen örnek fotoğraflar gösterilsin.
+              <span className="mt-1 block text-muted-dark">
+                Kendi fotoğraflarını yüklediğin anda hazır olanlar zaten kaybolur. Bu kutunun
+                işaretini kaldırırsan galeri, hiç fotoğraf yokken de tamamen boş kalır.
+              </span>
+            </span>
+          </label>
+        </div>
+      </Panel>
+
       <Panel baslik="Galeri" sag={`${galeri.length} görsel`}>
         {galeri.length === 0 ? (
           <p className="p-5 text-sm text-muted-dark">
@@ -135,6 +183,22 @@ export default function AdminGorseller() {
                 <div className="grid gap-2 p-2.5">
                   <p className="truncate text-xs text-muted-dark">{g.alt_metin || "Açıklama yok"}</p>
                   <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => siraDegistir(g, -1)}
+                      aria-label="Öne al"
+                      className="rounded-sm border border-white/20 px-2 py-1.5 text-xs text-[#cfe0d5] hover:border-brand-lite hover:text-white"
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => siraDegistir(g, 1)}
+                      aria-label="Geri al"
+                      className="rounded-sm border border-white/20 px-2 py-1.5 text-xs text-[#cfe0d5] hover:border-brand-lite hover:text-white"
+                    >
+                      →
+                    </button>
                     <button
                       type="button"
                       onClick={async () => {

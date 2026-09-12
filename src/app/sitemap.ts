@@ -12,6 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: "/puan-durumu", priority: 0.9 },
     { url: "/fikstur", priority: 0.8 },
     { url: "/takimlar", priority: 0.7 },
+    { url: "/biz-kimiz", priority: 0.6 },
     { url: "/galeri", priority: 0.5 },
     { url: "/katil", priority: 0.6 },
     { url: "/iletisim", priority: 0.5 },

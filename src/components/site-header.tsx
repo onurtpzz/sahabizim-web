@@ -9,6 +9,7 @@ const MENU = [
   { href: "/puan-durumu", label: "Puan Durumu" },
   { href: "/fikstur", label: "Fikstür" },
   { href: "/galeri", label: "Galeri" },
+  { href: "/biz-kimiz", label: "Biz Kimiz" },
   { href: "/iletisim", label: "İletişim" },
 ];
 

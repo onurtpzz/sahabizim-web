@@ -78,7 +78,7 @@ export function PuanTablosu({
       </p>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] border-collapse font-[family-name:var(--font-data)] text-[17px]">
+        <table className="w-full min-w-[620px] border-collapse font-[family-name:var(--font-data)] text-[17px]">
           <caption className="sr-only">
             SahaBizim Ligi puan durumu — puan, averaj ve atılan gole göre sıralı
           </caption>
@@ -100,13 +100,13 @@ export function PuanTablosu({
                 <th
                   key={s.h}
                   scope="col"
-                  className={`bg-ink-2 px-2 py-3 text-[13px] font-semibold uppercase tracking-[0.14em] ${
-                    i === 1 ? "pl-2 text-left md:pl-4" : "text-center"
+                  className={`bg-ink-2 px-1.5 py-3 md:px-2 text-[13px] font-semibold uppercase tracking-[0.14em] ${
+                    i === 1 ? "pl-1.5 text-left md:pl-4" : "text-center"
                   } ${
                     i === 0
-                      ? "sticky left-0 z-20 w-10 md:static"
+                      ? "sticky left-0 z-20 w-8 md:static md:w-12"
                       : i === 1
-                        ? "sticky left-10 z-20 shadow-[2px_0_0_0_rgba(0,0,0,0.12)] md:static md:shadow-none"
+                        ? "sticky left-8 z-20 shadow-[2px_0_0_0_rgba(0,0,0,0.12)] md:static md:left-auto md:shadow-none"
                         : ""
                   }`}
                 >
@@ -121,16 +121,16 @@ export function PuanTablosu({
               return (
                 <tr key={t.slug} className="group border-b border-line transition-colors hover:bg-[#eaf4eb]">
                   <td
-                    className={`sticky left-0 z-10 w-10 bg-white px-2 py-2.5 text-center font-[family-name:var(--font-display)] text-lg transition-colors group-hover:bg-[#eaf4eb] md:static md:w-12 ${
+                    className={`sticky left-0 z-10 w-8 bg-white px-1 py-2.5 text-center font-[family-name:var(--font-display)] text-base transition-colors group-hover:bg-[#eaf4eb] md:static md:w-12 md:px-2 md:text-lg ${
                       t.sira === 1 ? "text-gold" : t.sira <= 3 ? "text-brand" : "text-muted"
                     }`}
                   >
                     {t.sira}
                   </td>
-                  <td className="sticky left-10 z-10 max-w-[168px] bg-white py-2.5 pr-2 pl-2 text-left shadow-[2px_0_0_0_rgba(0,0,0,0.08)] transition-colors group-hover:bg-[#eaf4eb] md:static md:max-w-none md:pl-4 md:shadow-none">
+                  <td className="sticky left-8 z-10 w-[124px] max-w-[124px] bg-white py-2.5 pr-1.5 pl-1.5 text-left shadow-[2px_0_0_0_rgba(0,0,0,0.08)] transition-colors group-hover:bg-[#eaf4eb] md:static md:left-auto md:w-auto md:max-w-none md:pr-2 md:pl-4 md:shadow-none">
                     <Link
                       href={`/takim/${t.slug}`}
-                      className="flex items-center gap-2 text-[14px] font-bold hover:text-brand md:gap-2.5 md:text-[17px]"
+                      className="flex items-center gap-1.5 text-[13px] leading-tight font-bold hover:text-brand md:gap-2.5 md:text-[17px]"
                     >
                       {t.logoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -140,13 +140,13 @@ export function PuanTablosu({
                           width={30}
                           height={30}
                           loading="lazy"
-                          className="h-6 w-6 flex-none rounded-full object-contain md:h-[30px] md:w-[30px]"
+                          className="h-5 w-5 flex-none rounded-full object-contain md:h-[30px] md:w-[30px]"
                         />
                       ) : (
                         <span
                           aria-hidden
                           style={{ background: r.renk }}
-                          className="grid h-6 w-6 flex-none place-items-center rounded-full font-[family-name:var(--font-data)] text-[10px] font-bold text-white md:h-[30px] md:w-[30px] md:text-[12px]"
+                          className="grid h-5 w-5 flex-none place-items-center rounded-full font-[family-name:var(--font-data)] text-[9px] font-bold text-white md:h-[30px] md:w-[30px] md:text-[12px]"
                         >
                           {r.harf}
                         </span>
@@ -155,14 +155,14 @@ export function PuanTablosu({
                     </Link>
                   </td>
                   {[t.O, t.G, t.B, t.M, t.A, t.Y].map((v, i) => (
-                    <td key={i} className="tabular px-2 py-2.5 text-center font-semibold">
+                    <td key={i} className="tabular px-1.5 py-2.5 text-center font-semibold md:px-2">
                       {t.oynadi ? v : "–"}
                     </td>
                   ))}
-                  <td className="tabular px-2 py-2.5 text-center font-semibold">
+                  <td className="tabular px-1.5 py-2.5 text-center font-semibold md:px-2">
                     {t.oynadi ? (t.AV > 0 ? `+${t.AV}` : t.AV) : "–"}
                   </td>
-                  <td className="tabular px-2 py-2.5 text-center font-[family-name:var(--font-display)] text-xl text-ink">
+                  <td className="tabular px-1.5 py-2.5 text-center font-[family-name:var(--font-display)] text-xl text-ink md:px-2">
                     {t.oynadi ? t.P : "–"}
                   </td>
                   <td className="px-2 py-2.5">

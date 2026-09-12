@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/* `static`: değişkenler kullanılmasa bile CSS'e yazılır — .display gibi kendi
+   sınıflarımız bu değişkenleri doğrudan okuyor. */
+@theme static {
+  /* Logodan türetilen marka paleti */
+  --color-ink: #04150b;
+  --color-ink-2: #0b2a16;
+  --color-ink-3: #0e3320;
+  --color-paper: #f1f5f0;
+  --color-line: #d3ded1;
+  --color-brand: #17a33a;
+  --color-brand-lite: #4ade80;
+  --color-brand-deep: #0b5219;
+  --color-gold: #d4a72c;
+  --color-lose: #d93a2b;
+  --color-muted: #5b6b5f;
+  --color-muted-dark: #9cb5a4;
+
+  --font-display: var(--font-anton), Impact, "Arial Narrow", sans-serif;
+  --font-body: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-data: var(--font-barlow), "Arial Narrow", sans-serif;
+}
+
+/* next/font değişkenleri <html> üzerinde tanımlı; font aileleri burada birleştirilir. */
+:root {
+  color-scheme: light;
+  --font-display: var(--font-anton), Impact, "Arial Narrow", sans-serif;
+  --font-body: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-data: var(--font-barlow), "Arial Narrow", sans-serif;
+}
+
+body {
+  background: var(--color-paper);
+  color: #0d1410;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.eyebrow {
+  font-family: var(--font-data);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* Görünür durumdan başlayan, JS varsa görünüme girince oynayan animasyon */
+.reveal[data-armed] {
+  opacity: 0;
+  transform: translateY(22px);
+}
+.reveal[data-armed].in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal[data-armed] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Instagram gömmesi kendi genişliğini dayatıyor; kart sütununa sığdırıyoruz.
+   Yüksekliğe karışmıyoruz — gönderinin kendi beğeni/yorum şeridi görünsün. */
+.ig-kutu iframe.instagram-media {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}

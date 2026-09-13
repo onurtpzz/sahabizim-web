@@ -66,11 +66,11 @@ export default function AdminPuan() {
       {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
 
       <Uyari>
-        Burada iki ayrı şey var. <strong>Puan düzeltmesi</strong> ceza ve bonus içindir —
-        sadece puanı değiştirir, maç istatistiğine dokunmaz.{" "}
-        <strong>Devir istatistikleri</strong> ise Excel&apos;den gelen birikimdir; puan
-        durumu = devir + bu sezon girilen maçlar. Excel ile karşılaştırırken uyuşmayan
-        takımın devir sayılarını düzelt.
+        <strong>Puan düzeltmesi</strong> ceza ve bonus içindir — sadece puanı değiştirir,
+        maç istatistiğine dokunmaz. <strong>Tablo düzeltme</strong> ise takımın puan
+        durumundaki rakamları Excel&apos;e eşitler: yazdığın sayılar tablonun{" "}
+        <em>toplam</em> hâlidir, panel devir sayısını kendisi hesaplar. Sitede görünen
+        tablo = devir (Excel birikimi) + bu sezon panele girilen maçlar.
       </Uyari>
 
       <Panel baslik="Puan düzeltmesi ekle" sag="Ceza için eksi, bonus için artı">
@@ -130,7 +130,7 @@ export default function AdminPuan() {
         )}
       </Panel>
 
-      <Panel baslik="Devir istatistikleri (Excel senkronu)" sag="Takım ara, sayıları düzelt">
+      <Panel baslik="Tablo düzeltme (Excel senkronu)" sag="Takım ara, toplam rakamları yaz">
         <div className="grid gap-4 p-4">
           <Alan etiket="Takım ara">
             <Girdi
@@ -149,7 +149,7 @@ export default function AdminPuan() {
           ) : (
             <ul className="grid gap-3">
               {gorunen.slice(0, 8).map((t) => (
-                <DevirSatiri
+                <TabloSatiri
                   key={t.id}
                   takim={t}
                   guncel={tablo.find((r) => r.id === t.id)}
@@ -273,7 +273,28 @@ function DuzeltmeFormu({
   );
 }
 
-function DevirSatiri({
+const ALANLAR = [
+  { anahtar: "o", devir: "devir_o", etiket: "O" },
+  { anahtar: "g", devir: "devir_g", etiket: "G" },
+  { anahtar: "b", devir: "devir_b", etiket: "B" },
+  { anahtar: "m", devir: "devir_m", etiket: "M" },
+  { anahtar: "a", devir: "devir_a", etiket: "A" },
+  { anahtar: "y", devir: "devir_y", etiket: "Y" },
+] as const;
+
+type AlanAnahtari = (typeof ALANLAR)[number]["anahtar"];
+type Sayilar = Record<AlanAnahtari, number>;
+
+function bosSayilar(): Sayilar {
+  return { o: 0, g: 0, b: 0, m: 0, a: 0, y: 0 };
+}
+
+/**
+ * Panelde gösterilen rakamlar tablonun TOPLAM hâlidir (devir + bu sezon oynanan maçlar).
+ * Kaydederken devir = girilen toplam − bu sezon oynanan olarak geri hesaplanır;
+ * böylece ekrandaki sayılar ile site tablosu birebir aynı şeyi söyler.
+ */
+function TabloSatiri({
   takim,
   guncel,
   kaydedildi,
@@ -284,34 +305,98 @@ function DevirSatiri({
   kaydedildi: (m: string) => Promise<void>;
   hataVer: (m: string) => void;
 }) {
-  const alanlar = [
-    { k: "devir_o" as const, l: "O" },
-    { k: "devir_g" as const, l: "G" },
-    { k: "devir_b" as const, l: "B" },
-    { k: "devir_m" as const, l: "M" },
-    { k: "devir_a" as const, l: "A" },
-    { k: "devir_y" as const, l: "Y" },
-  ];
-  const baslangic = Object.fromEntries(
-    alanlar.map((a) => [a.k, String(takim[a.k] ?? 0)]),
-  ) as Record<string, string>;
+  const devir = useMemo<Sayilar>(
+    () => ({
+      o: takim.devir_o ?? 0,
+      g: takim.devir_g ?? 0,
+      b: takim.devir_b ?? 0,
+      m: takim.devir_m ?? 0,
+      a: takim.devir_a ?? 0,
+      y: takim.devir_y ?? 0,
+    }),
+    [takim],
+  );
+
+  // Bu sezon panele girilen maçlardan gelen kısım = tablo − devir.
+  const oynanan = useMemo<Sayilar>(() => {
+    if (!guncel) return bosSayilar();
+    const fark = {
+      o: guncel.o - devir.o,
+      g: guncel.g - devir.g,
+      b: guncel.b - devir.b,
+      m: guncel.m - devir.m,
+      a: guncel.a - devir.a,
+      y: guncel.y - devir.y,
+    };
+    return Object.fromEntries(
+      Object.entries(fark).map(([k, v]) => [k, Math.max(0, v)]),
+    ) as Sayilar;
+  }, [guncel, devir]);
+
+  const toplam = useMemo<Sayilar>(
+    () =>
+      guncel
+        ? { o: guncel.o, g: guncel.g, b: guncel.b, m: guncel.m, a: guncel.a, y: guncel.y }
+        : devir,
+    [guncel, devir],
+  );
+
+  // Puan düzeltmelerinden (ceza/bonus) gelen sapma — önizlemede korunur.
+  const puanSapmasi = guncel ? guncel.p - (guncel.g * 3 + guncel.b) : 0;
+
+  const baslangic = useMemo(
+    () =>
+      Object.fromEntries(ALANLAR.map((a) => [a.anahtar, String(toplam[a.anahtar])])) as Record<
+        AlanAnahtari,
+        string
+      >,
+    [toplam],
+  );
 
   const [degerler, setDegerler] = useState(baslangic);
   const [bekle, setBekle] = useState(false);
-  const degisti = alanlar.some((a) => degerler[a.k] !== baslangic[a.k]);
+
+  // Kaydettikten (ya da başka bir yerden veri yenilendikten) sonra kutular
+  // tazelensin — eskiden state ilk değerinde donup kalıyordu.
+  useEffect(() => {
+    setDegerler(baslangic);
+  }, [baslangic]);
+
+  const degisti = ALANLAR.some((a) => degerler[a.anahtar] !== baslangic[a.anahtar]);
+  const sayi = (k: AlanAnahtari) => Number(degerler[k]) || 0;
+
+  const yeniPuan = sayi("g") * 3 + sayi("b") + puanSapmasi;
+  const yeniAveraj = sayi("a") - sayi("y");
+  const maclarUyumsuz = sayi("g") + sayi("b") + sayi("m") !== sayi("o");
+
+  const eksik = ALANLAR.filter((a) => sayi(a.anahtar) < oynanan[a.anahtar]);
 
   async function kaydet() {
+    if (maclarUyumsuz) {
+      return hataVer(
+        `G+B+M (${sayi("g") + sayi("b") + sayi("m")}) oynanan maç sayısına (${sayi("o")}) eşit olmalı.`,
+      );
+    }
+    if (eksik.length > 0) {
+      return hataVer(
+        `Yazdığın toplam, bu sezon panele girilen maçlardan küçük olamaz: ` +
+          eksik
+            .map((a) => `${a.etiket} en az ${oynanan[a.anahtar]}`)
+            .join(", ") +
+          ". Önce ilgili maçı Maç & Skor ekranından düzelt.",
+      );
+    }
     setBekle(true);
     try {
       await devirKaydet(takim.id, {
-        devir_o: Number(degerler.devir_o) || 0,
-        devir_g: Number(degerler.devir_g) || 0,
-        devir_b: Number(degerler.devir_b) || 0,
-        devir_m: Number(degerler.devir_m) || 0,
-        devir_a: Number(degerler.devir_a) || 0,
-        devir_y: Number(degerler.devir_y) || 0,
+        devir_o: sayi("o") - oynanan.o,
+        devir_g: sayi("g") - oynanan.g,
+        devir_b: sayi("b") - oynanan.b,
+        devir_m: sayi("m") - oynanan.m,
+        devir_a: sayi("a") - oynanan.a,
+        devir_y: sayi("y") - oynanan.y,
       });
-      await kaydedildi(`${takim.ad} devir istatistikleri güncellendi.`);
+      await kaydedildi(`${takim.ad} tablosu güncellendi.`);
     } catch (e) {
       hataVer(e instanceof Error ? e.message : "Kaydedilemedi.");
     }
@@ -320,27 +405,40 @@ function DevirSatiri({
 
   return (
     <li className="rounded border border-white/12 bg-ink-2 p-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="font-[family-name:var(--font-data)] font-bold">{takim.ad}</span>
         {guncel && (
           <span className="text-xs text-muted-dark">
-            şu anki tablo: {guncel.o} maç · {guncel.p} puan · averaj{" "}
+            tabloda {guncel.sira}. sıra · {guncel.o} maç · {guncel.p} puan · averaj{" "}
             {guncel.av > 0 ? `+${guncel.av}` : guncel.av}
           </span>
         )}
       </div>
 
+      <p className="mt-1 text-xs text-muted-dark">
+        Kutulardaki sayılar <strong>tablonun toplamı</strong>. Bunun{" "}
+        {oynanan.o > 0 ? (
+          <>
+            <strong>{oynanan.o} maçı</strong> bu sezon panelden girildi (
+            {oynanan.g}G {oynanan.b}B {oynanan.m}M · {oynanan.a}-{oynanan.y}), gerisi Excel
+            devri. Panelden girilen maçlar korunur, sen sadece toplamı yaz.
+          </>
+        ) : (
+          <>tamamı Excel devri — bu sezon bu takıma henüz maç girilmemiş.</>
+        )}
+      </p>
+
       <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
-        {alanlar.map((a) => (
-          <label key={a.k} className="block">
+        {ALANLAR.map((a) => (
+          <label key={a.anahtar} className="block">
             <span className="mb-1 block text-center font-[family-name:var(--font-data)] text-xs tracking-[0.12em] text-muted-dark uppercase">
-              {a.l}
+              {a.etiket}
             </span>
             <Girdi
               inputMode="numeric"
-              value={degerler[a.k]}
+              value={degerler[a.anahtar]}
               onChange={(e) =>
-                setDegerler((d) => ({ ...d, [a.k]: e.target.value.replace(/\D/g, "") }))
+                setDegerler((d) => ({ ...d, [a.anahtar]: e.target.value.replace(/\D/g, "") }))
               }
               className="text-center font-[family-name:var(--font-display)] text-lg"
             />
@@ -348,10 +446,25 @@ function DevirSatiri({
         ))}
       </div>
 
-      <div className="mt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <Dugme type="button" onClick={kaydet} disabled={!degisti || bekle}>
           {bekle ? "Kaydediliyor…" : "Kaydet"}
         </Dugme>
+        {degisti && (
+          <span
+            className={`text-xs ${maclarUyumsuz || eksik.length > 0 ? "text-[#ff9a8f]" : "text-muted-dark"}`}
+          >
+            {maclarUyumsuz
+              ? `G+B+M ${sayi("g") + sayi("b") + sayi("m")} — oynanan maç ${sayi("o")} olmalı.`
+              : eksik.length > 0
+                ? `Bu sezon girilen maçlardan küçük olamaz (${eksik
+                    .map((a) => `${a.etiket} ≥ ${oynanan[a.anahtar]}`)
+                    .join(", ")}).`
+                : `Kaydedince tablo: ${sayi("o")} maç · ${yeniPuan} puan · averaj ${
+                    yeniAveraj > 0 ? `+${yeniAveraj}` : yeniAveraj
+                  }`}
+          </span>
+        )}
       </div>
     </li>
   );

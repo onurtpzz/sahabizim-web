@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TakimFotograflari } from "@/components/takim-fotograflari";
+import { TakimPaylas } from "@/components/takim-paylas";
 import { rozet } from "@/lib/puan";
-import { getPuanDurumu, getTakim } from "@/lib/veri";
+import { getPuanDurumu, getTakim, getTakimFotograflari } from "@/lib/veri";
 import { SITE } from "@/lib/site";
 
 export const revalidate = 60;
@@ -37,6 +39,7 @@ export default async function TakimSayfasi({
   const takim = await getTakim(slug);
   if (!takim) notFound();
 
+  const fotograflar = await getTakimFotograflari(takim.takimId);
   const r = rozet(takim.ad);
   const kutular = [
     { l: "Sıra", v: takim.oynadi ? takim.sira : "–" },
@@ -97,9 +100,23 @@ export default async function TakimSayfasi({
         </table>
       )}
 
-      <p className="mt-8 rounded border border-line bg-white p-5 text-muted">
-        Maç listesi ve form grafiği, fikstür sistemi devreye girdiğinde (Faz 4) bu sayfada görünecek.
-      </p>
+      <TakimFotograflari
+        takimAd={takim.ad}
+        takimSlug={takim.slug}
+        takimId={takim.takimId}
+        fotograflar={fotograflar}
+      />
+
+      <TakimPaylas
+        ad={takim.ad}
+        url={`${SITE.url}/takim/${takim.slug}`}
+        sira={takim.sira}
+        puan={takim.P}
+        oynanan={takim.O}
+        averaj={takim.AV}
+        oynadi={takim.oynadi}
+        son3={takim.son}
+      />
     </div>
   );
 }

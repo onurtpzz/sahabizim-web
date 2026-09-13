@@ -55,6 +55,22 @@ function db() {
   return supabase;
 }
 
+/**
+ * Tarayıcının yerel saatine göre bugünün tarihi: "2026-09-13".
+ * `toISOString()` UTC'ye çevirdiği için Türkiye'de gece yarısı–03:00 arasında
+ * bir önceki günü verirdi; bu yüzden kullanılmıyor.
+ */
+export function bugun() {
+  const d = new Date();
+  const iki = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${iki(d.getMonth() + 1)}-${iki(d.getDate())}`;
+}
+
+/** "2026-09-13" → o günün yerel öğlen saatinin ISO karşılığı. Saat dilimi kayması olmaz. */
+export function tarihiIsoYap(tarih: string) {
+  return tarih ? new Date(`${tarih}T12:00:00`).toISOString() : null;
+}
+
 /** Türkçe karakterleri sadeleştirip URL'de kullanılabilir hale getirir. */
 export function slugla(ad: string) {
   const harita: Record<string, string> = {
@@ -247,6 +263,10 @@ export async function talepOkundu(id: string, okundu: boolean) {
 export async function yeniSezon(ad: string, takimlariTasi: boolean) {
   const eski = await aktifSezon();
   if (eski) {
+    // ÖNCE arşivle: `puan_durumu` görünümü yalnız aktif sezonu hesaplar,
+    // sezon kapandıktan sonra o tabloyu bir daha üretemeyiz.
+    await sezonuArsivle(eski.id);
+
     const { error } = await db()
       .from("sezonlar")
       .update({ aktif: false, bitti: new Date().toISOString().slice(0, 10) })
@@ -254,9 +274,12 @@ export async function yeniSezon(ad: string, takimlariTasi: boolean) {
     if (error) throw error;
   }
 
-  const { error: hata } = await db()
-    .from("sezonlar")
-    .insert({ ad, aktif: true, basladi: new Date().toISOString().slice(0, 10) });
+  const { error: hata } = await db().from("sezonlar").insert({
+    ad,
+    slug: sezonSlug(ad),
+    aktif: true,
+    basladi: new Date().toISOString().slice(0, 10),
+  });
   if (hata) throw hata;
 
   // Yeni sezon sıfırdan başlar: devir istatistikleri temizlenir.
@@ -308,5 +331,198 @@ export async function sosyalGuncelle(id: string, degisiklik: Partial<SosyalKayit
 
 export async function sosyalSil(id: string) {
   const { error } = await db().from("sosyal_icerikler").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ------------------------------------------------- kurallar ve duyurular
+export type Duyuru = {
+  id: string;
+  tur: "duyuru" | "kural";
+  tarih: string | null;
+  baslik: string;
+  metin: string;
+  sabit: boolean;
+  sira: number;
+  yayinda: boolean;
+  olusturuldu: string;
+};
+
+export async function duyurulariGetir(): Promise<Duyuru[]> {
+  const { data, error } = await db()
+    .from("duyurular")
+    .select("*")
+    .order("sabit", { ascending: false })
+    .order("tarih", { ascending: false, nullsFirst: false })
+    .order("sira");
+  if (error) throw error;
+  return (data ?? []) as Duyuru[];
+}
+
+export async function duyuruEkle(kayit: {
+  tur: "duyuru" | "kural";
+  tarih: string | null;
+  baslik: string;
+  metin: string;
+  sabit: boolean;
+  sira: number;
+}) {
+  const { error } = await db().from("duyurular").insert(kayit);
+  if (error) throw error;
+}
+
+export async function duyuruGuncelle(id: string, degisiklik: Partial<Duyuru>) {
+  const { error } = await db().from("duyurular").update(degisiklik).eq("id", id);
+  if (error) throw error;
+}
+
+export async function duyuruSil(id: string) {
+  const { error } = await db().from("duyurular").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// --------------------------------------------------------- puan düzeltme
+export type PuanDuzeltmesi = {
+  id: string;
+  sezon_id: string;
+  takim_id: string;
+  puan_farki: number;
+  sebep: string;
+  olusturuldu: string;
+};
+
+export async function duzeltmeleriGetir(sezonId: string): Promise<PuanDuzeltmesi[]> {
+  const { data, error } = await db()
+    .from("puan_duzeltmeleri")
+    .select("*")
+    .eq("sezon_id", sezonId)
+    .order("olusturuldu", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as PuanDuzeltmesi[];
+}
+
+export async function duzeltmeEkle(kayit: {
+  sezon_id: string;
+  takim_id: string;
+  puan_farki: number;
+  sebep: string;
+}) {
+  if (!kayit.sebep.trim()) throw new Error("Sebep yazmadan puan düzeltmesi eklenemez.");
+  if (!kayit.puan_farki) throw new Error("Puan farkı 0 olamaz.");
+  const { error } = await db().from("puan_duzeltmeleri").insert(kayit);
+  if (error) throw error;
+}
+
+export async function duzeltmeSil(id: string) {
+  const { error } = await db().from("puan_duzeltmeleri").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** Excel'den gelen devir istatistikleri — puan durumuna bu sayılar eklenir. */
+export async function devirKaydet(
+  takimId: string,
+  devir: { devir_o: number; devir_g: number; devir_b: number; devir_m: number; devir_a: number; devir_y: number },
+) {
+  const { devir_o, devir_g, devir_b, devir_m } = devir;
+  if (devir_g + devir_b + devir_m > devir_o) {
+    throw new Error(
+      `G+B+M (${devir_g + devir_b + devir_m}) oynanan maçtan (${devir_o}) fazla olamaz.`,
+    );
+  }
+  const { error } = await db().from("takimlar").update(devir).eq("id", takimId);
+  if (error) throw error;
+}
+
+/** Puan durumu görünümü — düzeltme ekranında güncel tabloyu göstermek için. */
+export async function puanDurumuGetir() {
+  const { data, error } = await db().from("puan_durumu").select("*").order("sira");
+  if (error) throw error;
+  return (data ?? []) as {
+    sira: number;
+    id: string;
+    ad: string;
+    slug: string;
+    o: number;
+    g: number;
+    b: number;
+    m: number;
+    a: number;
+    y: number;
+    av: number;
+    p: number;
+  }[];
+}
+
+// --------------------------------------------------------- sezon arşivi
+/**
+ * O anki puan durumunun fotoğrafını `sezon_arsivi` tablosuna kopyalar ve
+ * şampiyonu sezona işler. Sezon kapanmadan ÖNCE çağrılmalı — `puan_durumu`
+ * görünümü yalnız aktif sezonu hesaplar.
+ */
+export async function sezonuArsivle(sezonId: string) {
+  const tablo = await puanDurumuGetir();
+  if (!tablo.length) throw new Error("Puan durumu boş, arşivlenecek bir şey yok.");
+
+  const { data: takimlar } = await db().from("takimlar").select("id, logo_url");
+  const logolar = Object.fromEntries((takimlar ?? []).map((t) => [t.id, t.logo_url]));
+
+  const satirlar = tablo.map((r) => ({
+    sezon_id: sezonId,
+    takim_id: r.id,
+    sira: r.sira,
+    takim_ad: r.ad,
+    slug: r.slug,
+    logo_url: (logolar[r.id] as string | null) ?? null,
+    o: r.o, g: r.g, b: r.b, m: r.m, a: r.a, y: r.y, av: r.av, p: r.p,
+  }));
+
+  const { error } = await db()
+    .from("sezon_arsivi")
+    .upsert(satirlar, { onConflict: "sezon_id,slug" });
+  if (error) throw error;
+
+  const sampiyon = tablo.find((r) => r.sira === 1);
+  if (sampiyon) {
+    await db().from("sezonlar").update({ sampiyon_id: sampiyon.id }).eq("id", sezonId);
+  }
+  return satirlar.length;
+}
+
+/** "2026–2027" → "2026-2027" */
+function sezonSlug(ad: string) {
+  return ad
+    .replace(/[–—/\s]+/g, "-")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+// ----------------------------------------------------- takım fotoğrafları
+export type TakimFotografi = {
+  id: string;
+  takim_id: string;
+  url: string;
+  aciklama: string | null;
+  yukleyen_ad: string | null;
+  durum: "bekliyor" | "onayli" | "red";
+  sira: number;
+  olusturuldu: string;
+};
+
+export async function fotograflariGetir(durum?: "bekliyor" | "onayli" | "red") {
+  let sorgu = db().from("takim_fotograflari").select("*");
+  if (durum) sorgu = sorgu.eq("durum", durum);
+  const { data, error } = await sorgu.order("olusturuldu", { ascending: false }).limit(300);
+  if (error) throw error;
+  return (data ?? []) as TakimFotografi[];
+}
+
+export async function fotografDurumu(id: string, durum: "bekliyor" | "onayli" | "red") {
+  const { error } = await db().from("takim_fotograflari").update({ durum }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function fotografSil(id: string) {
+  const { error } = await db().from("takim_fotograflari").delete().eq("id", id);
   if (error) throw error;
 }

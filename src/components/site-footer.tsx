@@ -36,6 +36,8 @@ export async function SiteFooter() {
               <li><Link href="/puan-durumu" className="hover:text-brand-lite">Puan Durumu</Link></li>
               <li><Link href="/fikstur" className="hover:text-brand-lite">Fikstür</Link></li>
               <li><Link href="/takimlar" className="hover:text-brand-lite">Takımlar</Link></li>
+              <li><Link href="/kurallar-ve-duyurular" className="hover:text-brand-lite">Kurallar ve Duyurular</Link></li>
+              <li><Link href="/arsiv" className="hover:text-brand-lite">Arşiv</Link></li>
               <li><Link href="/biz-kimiz" className="hover:text-brand-lite">Biz Kimiz</Link></li>
             </ul>
           </div>
@@ -60,6 +62,13 @@ export async function SiteFooter() {
           <span>© {new Date().getFullYear()} {SITE.ad} · www.sahabizim.com.tr</span>
           <span>{SITE.sezon} sezonu</span>
         </div>
+
+        {icerik.katki_metin.trim() && (
+          <p className="mt-3 text-center font-[family-name:var(--font-data)] text-[12.5px] tracking-[0.14em] text-[#6d8676] uppercase">
+            <span aria-hidden className="mr-2 text-gold">◆</span>
+            {icerik.katki_metin}
+          </p>
+        )}
       </div>
     </footer>
   );

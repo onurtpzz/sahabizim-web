@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Alan, Dugme, Girdi, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
 import {
   aktifSezon,
+  bugun,
   macEkle,
+  tarihiIsoYap,
   macSil,
   maclariGetir,
   skorKaydet,
@@ -209,12 +211,25 @@ function YeniMac({
   kaydedildi: (metin: string) => Promise<void>;
   hataVer: (metin: string) => void;
 }) {
-  const [tarih, setTarih] = useState(new Date().toISOString().slice(0, 10));
+  // Tarih sunucuda değil, tarayıcıda belirlenir: sayfa hangi gün açıldıysa o günün
+  // tarihi gelir. Panel gece boyunca açık kalırsa sekmeye dönüldüğünde tazelenir —
+  // ama sen tarihi elle değiştirdiysen dokunulmaz.
+  const [tarih, setTarih] = useState("");
+  const [elleSecildi, setElleSecildi] = useState(false);
   const [evId, setEvId] = useState("");
   const [depId, setDepId] = useState("");
   const [ev, setEv] = useState("");
   const [dep, setDep] = useState("");
   const [bekle, setBekle] = useState(false);
+
+  useEffect(() => {
+    if (!elleSecildi) setTarih(bugun());
+    function tazele() {
+      if (!document.hidden && !elleSecildi) setTarih(bugun());
+    }
+    document.addEventListener("visibilitychange", tazele);
+    return () => document.removeEventListener("visibilitychange", tazele);
+  }, [elleSecildi]);
 
   async function gonder(e: React.FormEvent) {
     e.preventDefault();
@@ -225,7 +240,7 @@ function YeniMac({
       await macEkle({
         sezon_id: sezonId,
         hafta: null,
-        oynanma: tarih ? new Date(tarih).toISOString() : null,
+        oynanma: tarihiIsoYap(tarih),
         ev_id: evId,
         dep_id: depId,
         ev_skor: ev === "" ? null : Number(ev),
@@ -236,6 +251,9 @@ function YeniMac({
       setDep("");
       setEvId("");
       setDepId("");
+      // Arka arkaya sonuç girerken tarih yine bugüne dönsün.
+      setElleSecildi(false);
+      setTarih(bugun());
       await kaydedildi("Maç eklendi.");
     } catch (err) {
       hataVer(err instanceof Error ? err.message : "Eklenemedi.");
@@ -248,7 +266,15 @@ function YeniMac({
       <form onSubmit={gonder} className="grid gap-4 p-4">
         <div className="max-w-[220px]">
           <Alan etiket="Maç tarihi">
-            <Girdi id="tarih" type="date" value={tarih} onChange={(e) => setTarih(e.target.value)} />
+            <Girdi
+              id="tarih"
+              type="date"
+              value={tarih}
+              onChange={(e) => {
+                setElleSecildi(true);
+                setTarih(e.target.value);
+              }}
+            />
           </Alan>
         </div>
 

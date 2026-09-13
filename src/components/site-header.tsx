@@ -8,6 +8,7 @@ import { SITE } from "@/lib/site";
 const MENU = [
   { href: "/puan-durumu", label: "Puan Durumu" },
   { href: "/fikstur", label: "Fikstür" },
+  { href: "/kurallar-ve-duyurular", label: "Duyurular" },
   { href: "/galeri", label: "Galeri" },
   { href: "/biz-kimiz", label: "Biz Kimiz" },
   { href: "/iletisim", label: "İletişim" },

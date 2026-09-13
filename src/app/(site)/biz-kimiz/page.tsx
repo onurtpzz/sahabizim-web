@@ -21,6 +21,15 @@ export default async function BizKimizSayfasi() {
   ]);
 
   const paragraflar = icerik.bizkimiz_metin.split(/\n{2,}/).filter(Boolean);
+  // "Başlık|Açıklama" biçiminde, her satır bir etkinlik.
+  const etkinlikler = icerik.bizkimiz_etkinlikler
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const [b, ...kalan] = s.split("|");
+      return { baslik: b.trim(), metin: kalan.join("|").trim() };
+    });
   const degerler = [icerik.bizkimiz_deger1, icerik.bizkimiz_deger2, icerik.bizkimiz_deger3]
     .filter(Boolean)
     .map((d) => {
@@ -85,7 +94,43 @@ export default async function BizKimizSayfasi() {
           </ul>
         )}
 
-        <div className="mt-12 flex flex-wrap gap-3">
+      </section>
+
+      {/* ORGANİZASYONLAR VE SOSYAL ETKİNLİKLER */}
+      {etkinlikler.length > 0 && (
+        <section className="border-y border-line bg-ink text-white">
+          <div className="mx-auto w-full max-w-[1180px] px-5 py-14 md:py-20">
+            <p className="eyebrow text-gold">Saha dışında</p>
+            <h2 className="display mt-3 text-[clamp(1.9rem,5vw,3rem)]">
+              {icerik.bizkimiz_etkinlik_baslik}
+            </h2>
+            <p className="mt-4 max-w-[62ch] text-[#cfe0d5]">{icerik.bizkimiz_etkinlik_metin}</p>
+
+            <ul className="mt-9 grid gap-px overflow-hidden rounded border border-white/12 bg-white/12 sm:grid-cols-2 lg:grid-cols-4">
+              {etkinlikler.map((e, i) => (
+                <li
+                  key={e.baslik}
+                  className="group relative bg-ink p-6 transition-colors hover:bg-ink-2"
+                >
+                  <span
+                    aria-hidden
+                    className="display block text-3xl text-white/12 transition-colors group-hover:text-gold/45"
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="mt-2 font-[family-name:var(--font-data)] text-xl font-bold uppercase tracking-wide text-brand-lite">
+                    {e.baslik}
+                  </h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-[#cfe0d5]">{e.metin}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      <section className="mx-auto w-full max-w-[1180px] px-5 py-14 md:py-16">
+        <div className="flex flex-wrap gap-3">
           <Link
             href="/katil"
             className="rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Alan, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
-import { sezonlariGetir, yeniSezon, type Sezon } from "@/lib/admin-veri";
+import { sezonlariGetir, sezonuArsivle, yeniSezon, type Sezon } from "@/lib/admin-veri";
 
 export default function AdminSezon() {
   const [sezonlar, setSezonlar] = useState<Sezon[]>([]);
@@ -11,6 +11,7 @@ export default function AdminSezon() {
   const [onay, setOnay] = useState("");
   const [tasi, setTasi] = useState(true);
   const [bekle, setBekle] = useState(false);
+  const [arsivBekle, setArsivBekle] = useState(false);
 
   async function yenile() {
     try {
@@ -73,6 +74,42 @@ export default function AdminSezon() {
             </li>
           ))}
         </ul>
+      </Panel>
+
+      <Panel baslik="Şimdi arşivle" sag="Sezonu bitirmeden yedek al">
+        <div className="grid gap-3 p-4">
+          <p className="text-sm text-[#cfe0d5]">
+            Şu anki puan durumunun bir kopyasını arşive yazar; sezon açık kalmaya devam
+            eder. Aynı sezon için tekrar bastığında kopya güncellenir. Sezonu bitirdiğinde
+            bu zaten kendiliğinden yapılır — bu buton sadece ekstra güvence.
+          </p>
+          <div>
+            <Dugme
+              type="button"
+              tur="ikincil"
+              disabled={!aktif || arsivBekle}
+              onClick={async () => {
+                if (!aktif) return;
+                setArsivBekle(true);
+                try {
+                  const adet = await sezonuArsivle(aktif.id);
+                  setMesaj({
+                    tur: "basari",
+                    metin: `${adet} takım ${aktif.ad} sezonunun arşivine yazıldı.`,
+                  });
+                } catch (e) {
+                  setMesaj({
+                    tur: "hata",
+                    metin: e instanceof Error ? e.message : "Arşivlenemedi.",
+                  });
+                }
+                setArsivBekle(false);
+              }}
+            >
+              {arsivBekle ? "Arşivleniyor…" : "Puan durumunu arşive kopyala"}
+            </Dugme>
+          </div>
+        </div>
       </Panel>
 
       <Panel baslik="Yeni sezon başlat">

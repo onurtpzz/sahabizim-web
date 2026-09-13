@@ -36,6 +36,20 @@ const GRUPLAR: { ad: string; not?: string; anahtarlar: string[] }[] = [
       "bizkimiz_deger1",
       "bizkimiz_deger2",
       "bizkimiz_deger3",
+      "bizkimiz_etkinlik_baslik",
+      "bizkimiz_etkinlik_metin",
+      "bizkimiz_etkinlikler",
+    ],
+  },
+  {
+    ad: "Canlı yayın",
+    not: "Kapatmak için \"aktif\" alanına hayir yaz. Link boşsa sadece bilgi yazısı görünür.",
+    anahtarlar: [
+      "canli_yayin_aktif",
+      "canli_yayin_metin",
+      "canli_yayin_buton",
+      "canli_yayin_link",
+      "canli_yayin_aciklama",
     ],
   },
   {
@@ -46,13 +60,21 @@ const GRUPLAR: { ad: string; not?: string; anahtarlar: string[] }[] = [
       "iletisim_metin",
       "galeri_metin",
       "footer_metin",
+      "katki_metin",
       "site_aciklama",
     ],
   },
 ];
 
+/** Bu alanlar kısa olduğu için tek satırlık girdi kullanır. */
+const TEK_SATIR = new Set(["canli_yayin_metin", "katki_metin"]);
+
 const COK_SATIRLI = (anahtar: string) =>
-  anahtar.endsWith("_metin") || anahtar.endsWith("_maddeler") || anahtar.endsWith("_aciklama");
+  !TEK_SATIR.has(anahtar) &&
+  (anahtar.endsWith("_metin") ||
+    anahtar.endsWith("_maddeler") ||
+    anahtar.endsWith("_etkinlikler") ||
+    anahtar.endsWith("_aciklama"));
 
 export default function AdminAyarlar() {
   const [ayarlar, setAyarlar] = useState<Ayar[]>([]);
@@ -127,7 +149,7 @@ export default function AdminAyarlar() {
                     {COK_SATIRLI(a.anahtar) ? (
                       <textarea
                         id={`ayar-${a.anahtar}`}
-                        rows={a.anahtar.endsWith("_maddeler") ? 5 : 3}
+                        rows={a.anahtar.endsWith("_maddeler") || a.anahtar.endsWith("_etkinlikler") ? 5 : 3}
                         value={degerler[a.anahtar] ?? ""}
                         onChange={(e) =>
                           setDegerler((d) => ({ ...d, [a.anahtar]: e.target.value }))

@@ -24,7 +24,7 @@ type PuanSatiriDB = {
   oynadi: boolean;
 };
 
-function cevir(r: PuanSatiriDB): PuanSatiri & { logoUrl: string | null } {
+function cevir(r: PuanSatiriDB): PuanSatiri & { logoUrl: string | null; takimId: string } {
   // Son 3 maç en yeniden eskiye gelir; tabloda soldan sağa eskiden yeniye gösteriyoruz.
   const son = [...(r.son3 ?? [])].reverse() as MacSonucu[];
   while (son.length < 3) son.unshift("");
@@ -45,6 +45,7 @@ function cevir(r: PuanSatiriDB): PuanSatiri & { logoUrl: string | null } {
     P: r.p,
     oynadi: r.oynadi,
     logoUrl: r.logo_url,
+    takimId: r.id,
   };
 }
 
@@ -53,7 +54,7 @@ function cevir(r: PuanSatiriDB): PuanSatiri & { logoUrl: string | null } {
  * başarısız olursa `src/data/takimlar.ts` içindeki yedek veriye döner.
  */
 export async function getPuanDurumu(): Promise<
-  (PuanSatiri & { logoUrl?: string | null })[]
+  (PuanSatiri & { logoUrl?: string | null; takimId?: string })[]
 > {
   if (!supabase) return yedekPuanDurumu();
 
@@ -179,6 +180,18 @@ export const VARSAYILAN_ICERIK = {
   bizkimiz_deger1: "Herkese açık|Kadro, tecrübe veya bütçe fark etmez. Takımını kur, gel.",
   bizkimiz_deger2: "Düzenli lig|Fikstür, skor, puan durumu — hepsi kayıt altında ve herkese açık.",
   bizkimiz_deger3: "Saha içi saygı|Rekabet sahada kalır. Küfür, kavga ve ayrımcılık hoş görülmez.",
+  bizkimiz_etkinlik_baslik: "Sadece maç değil",
+  bizkimiz_etkinlik_metin:
+    "SahaBizim yalnızca bir lig değil; sahanın dışında da bir arada olan bir topluluk. Yıl boyunca düzenlediğimiz etkinliklere bütün takımlar davetli.",
+  bizkimiz_etkinlikler:
+    "Piknik|Sezon arası, ailelerin de geldiği gün boyu süren buluşmalar.\nKamp|Doğada iki gün: yürüyüş, maç ve gece sohbeti.\nMangal|Maç sonrası klasikleşen mangal akşamları.\nGönüllü AFAD arama-kurtarma ekibi|Afet durumunda görev almak üzere eğitim alan gönüllü ekibimiz.",
+  canli_yayin_aktif: "evet",
+  canli_yayin_metin: "Haftanın maçlarını canlı yayınlıyoruz",
+  canli_yayin_buton: "Yayına git",
+  canli_yayin_link: "",
+  canli_yayin_aciklama:
+    "Seçtiğimiz maçları YouTube ve Instagram üzerinden canlı yayınlıyoruz. Yayın günü ve saati sosyal medya hesaplarımızdan duyurulur.",
+  katki_metin: "Onur Topuz'un katkılarıyla",
   varsayilan_gorseller: "evet",
   sosyal_baslik: "Sahadan kareler",
   sosyal_metin: "Instagram ve YouTube'da paylaştığımız son içerikler.",
@@ -287,4 +300,156 @@ export async function getMaclar(): Promise<FiksturMaci[]> {
       ev: { ad: m.ev!.ad, slug: m.ev!.slug, logoUrl: m.ev!.logo_url },
       dep: { ad: m.dep!.ad, slug: m.dep!.slug, logoUrl: m.dep!.logo_url },
     }));
+}
+
+// ---------------------------------------------------------------------
+// Kurallar ve duyurular
+// ---------------------------------------------------------------------
+
+export type Duyuru = {
+  id: string;
+  tur: "duyuru" | "kural";
+  tarih: string | null;
+  baslik: string;
+  metin: string;
+  sabit: boolean;
+  sira: number;
+};
+
+/**
+ * Yayındaki duyuru ve kurallar. Sıralama: önce sabitlenenler,
+ * sonra duyurularda tarihe göre yeniden eskiye, kurallarda elle verilen sıra.
+ */
+export async function getDuyurular(): Promise<Duyuru[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("duyurular")
+    .select("id, tur, tarih, baslik, metin, sabit, sira")
+    .eq("yayinda", true)
+    .order("sabit", { ascending: false })
+    .order("tarih", { ascending: false, nullsFirst: false })
+    .order("sira");
+  if (error || !data) return [];
+  return data as Duyuru[];
+}
+
+// ---------------------------------------------------------------------
+// Sezon arşivi
+// ---------------------------------------------------------------------
+
+export type ArsivSatiri = {
+  sira: number;
+  takim_ad: string;
+  slug: string;
+  logo_url: string | null;
+  o: number;
+  g: number;
+  b: number;
+  m: number;
+  a: number;
+  y: number;
+  av: number;
+  p: number;
+};
+
+export type ArsivSezonu = {
+  id: string;
+  ad: string;
+  slug: string;
+  basladi: string | null;
+  bitti: string | null;
+  takimSayisi: number;
+  sampiyon: string | null;
+};
+
+/** Arşive alınmış (kapanmış) sezonlar — en yeniden eskiye. */
+export async function getArsivSezonlari(): Promise<ArsivSezonu[]> {
+  if (!supabase) return [];
+  const { data: sezonlar, error } = await supabase
+    .from("sezonlar")
+    .select("id, ad, slug, basladi, bitti")
+    .eq("aktif", false)
+    .order("basladi", { ascending: false });
+  if (error || !sezonlar?.length) return [];
+
+  const { data: satirlar } = await supabase
+    .from("sezon_arsivi")
+    .select("sezon_id, sira, takim_ad");
+
+  return sezonlar
+    .map((s) => {
+      const kendi = (satirlar ?? []).filter((r) => r.sezon_id === s.id);
+      return {
+        id: s.id as string,
+        ad: s.ad as string,
+        slug: (s.slug as string) ?? "",
+        basladi: s.basladi as string | null,
+        bitti: s.bitti as string | null,
+        takimSayisi: kendi.length,
+        sampiyon: (kendi.find((r) => r.sira === 1)?.takim_ad as string) ?? null,
+      };
+    })
+    .filter((s) => s.takimSayisi > 0 && s.slug);
+}
+
+/** Bir sezonun arşivlenmiş final tablosu. */
+export async function getArsivTablosu(
+  slug: string,
+): Promise<{ sezon: ArsivSezonu; satirlar: ArsivSatiri[] } | null> {
+  if (!supabase) return null;
+  const { data: sezon } = await supabase
+    .from("sezonlar")
+    .select("id, ad, slug, basladi, bitti")
+    .eq("slug", slug)
+    .limit(1);
+  const s = sezon?.[0];
+  if (!s) return null;
+
+  const { data } = await supabase
+    .from("sezon_arsivi")
+    .select("sira, takim_ad, slug, logo_url, o, g, b, m, a, y, av, p")
+    .eq("sezon_id", s.id)
+    .order("sira");
+  if (!data?.length) return null;
+
+  const satirlar = data as ArsivSatiri[];
+  return {
+    sezon: {
+      id: s.id as string,
+      ad: s.ad as string,
+      slug: s.slug as string,
+      basladi: s.basladi as string | null,
+      bitti: s.bitti as string | null,
+      takimSayisi: satirlar.length,
+      sampiyon: satirlar.find((r) => r.sira === 1)?.takim_ad ?? null,
+    },
+    satirlar,
+  };
+}
+
+// ---------------------------------------------------------------------
+// Takım fotoğrafları (ziyaretçi yüklemesi, onaydan geçer)
+// ---------------------------------------------------------------------
+
+export type TakimFotografi = {
+  id: string;
+  url: string;
+  aciklama: string | null;
+  yukleyen_ad: string | null;
+};
+
+export async function getTakimFotograflari(
+  takimId: string | undefined,
+): Promise<TakimFotografi[]> {
+  if (!supabase || !takimId) return [];
+  const { data, error } = await supabase
+    .from("takim_fotograflari")
+    .select("id, url, aciklama, yukleyen_ad")
+    .eq("takim_id", takimId)
+    .eq("durum", "onayli")
+    .order("sira")
+    .order("olusturuldu", { ascending: false })
+    .limit(24);
+  if (error || !data) return [];
+  return data as TakimFotografi[];
 }

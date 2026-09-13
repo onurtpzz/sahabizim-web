@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { rozet } from "@/lib/puan";
 import { SITE } from "@/lib/site";
-import { CanliYayinKarti } from "@/components/canli-yayin";
-import { getIcerik, getMaclar, type FiksturMaci } from "@/lib/veri";
+import { getMaclar, type FiksturMaci } from "@/lib/veri";
 
 export const revalidate = 60;
 
@@ -14,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function FiksturSayfasi() {
-  const [maclar, icerik] = await Promise.all([getMaclar(), getIcerik()]);
+  const maclar = await getMaclar();
   const oynanacak = maclar.filter((m) => m.durum === "oynanacak" || m.durum === "ertelendi");
   const oynanan = maclar.filter((m) => m.durum === "oynandi" || m.durum === "hukmen");
 
@@ -30,16 +29,6 @@ export default async function FiksturSayfasi() {
         </Link>{" "}
         işlenir.
       </p>
-
-      <div className="mt-8">
-        <CanliYayinKarti
-          aktif={icerik.canli_yayin_aktif !== "hayir"}
-          metin={icerik.canli_yayin_metin}
-          aciklama={icerik.canli_yayin_aciklama}
-          buton={icerik.canli_yayin_buton}
-          link={icerik.canli_yayin_link}
-        />
-      </div>
 
       {maclar.length === 0 ? (
         <div className="mt-8 rounded border border-line bg-white p-8">

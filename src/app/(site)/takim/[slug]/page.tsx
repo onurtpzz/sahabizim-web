@@ -2,9 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TakimFotograflari } from "@/components/takim-fotograflari";
+import { TakimMaclari } from "@/components/takim-maclari";
 import { TakimPaylas } from "@/components/takim-paylas";
 import { rozet } from "@/lib/puan";
-import { getPuanDurumu, getTakim, getTakimFotograflari } from "@/lib/veri";
+import {
+  getPuanDurumu,
+  getTakim,
+  getTakimFotograflari,
+  getTakimMaclari,
+} from "@/lib/veri";
 import { SITE } from "@/lib/site";
 
 export const revalidate = 60;
@@ -39,7 +45,10 @@ export default async function TakimSayfasi({
   const takim = await getTakim(slug);
   if (!takim) notFound();
 
-  const fotograflar = await getTakimFotograflari(takim.takimId);
+  const [fotograflar, maclar] = await Promise.all([
+    getTakimFotograflari(takim.takimId),
+    getTakimMaclari(slug, 10),
+  ]);
   const r = rozet(takim.ad);
   const kutular = [
     { l: "Sıra", v: takim.oynadi ? takim.sira : "–" },
@@ -99,6 +108,13 @@ export default async function TakimSayfasi({
           </tbody>
         </table>
       )}
+
+      <TakimMaclari
+        takimAd={takim.ad}
+        slug={takim.slug}
+        oynanan={maclar.oynanan}
+        sirada={maclar.sirada}
+      />
 
       <TakimFotograflari
         takimAd={takim.ad}

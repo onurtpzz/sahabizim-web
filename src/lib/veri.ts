@@ -453,3 +453,23 @@ export async function getTakimFotograflari(
   if (error || !data) return [];
   return data as TakimFotografi[];
 }
+
+/**
+ * Bir takımın bu sezonki maçları. `oynanan` en yeniden eskiye (en fazla `adet`
+ * tane), `sirada` en yakın tarihten uzağa.
+ */
+export async function getTakimMaclari(slug: string, adet = 10) {
+  const hepsi = await getMaclar();
+  const kendi = hepsi.filter((m) => m.ev.slug === slug || m.dep.slug === slug);
+
+  const oynanan = kendi
+    .filter((m) => m.durum === "oynandi" || m.durum === "hukmen")
+    .slice(0, adet);
+
+  const sirada = kendi
+    .filter((m) => m.durum === "oynanacak" || m.durum === "ertelendi")
+    .sort((a, b) => (a.tarih ?? "").localeCompare(b.tarih ?? ""))
+    .slice(0, 5);
+
+  return { oynanan, sirada, toplam: kendi.length };
+}

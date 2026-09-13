@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alan, Dugme, Girdi, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
+import { MacGorseli } from "@/components/admin/mac-gorseli";
+import { SITE } from "@/lib/site";
 import {
   aktifSezon,
   bugun,
@@ -23,8 +25,12 @@ export default function AdminMaclar() {
   const [mesaj, setMesaj] = useState<{ tur: "basari" | "hata"; metin: string } | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
 
-  const adlar = useMemo(
-    () => Object.fromEntries(takimlar.map((t) => [t.id, t.ad])),
+  // Maç satırlarında hem ad hem logo lazım (logo paylaşım görseline giriyor).
+  const bilgiler = useMemo(
+    () =>
+      Object.fromEntries(
+        takimlar.map((t) => [t.id, { ad: t.ad, logo: t.logo_url }]),
+      ) as Record<string, { ad: string; logo: string | null }>,
     [takimlar],
   );
 
@@ -79,7 +85,7 @@ export default function AdminMaclar() {
         <Panel baslik="Skor bekleyen maçlar" sag={`${bekleyen.length} maç`}>
           <ul className="divide-y divide-white/8">
             {bekleyen.map((m) => (
-              <MacSatiri key={m.id} mac={m} adlar={adlar} yenile={yenile} setMesaj={setMesaj} />
+              <MacSatiri key={m.id} mac={m} bilgiler={bilgiler} yenile={yenile} setMesaj={setMesaj} />
             ))}
           </ul>
         </Panel>
@@ -93,7 +99,7 @@ export default function AdminMaclar() {
         ) : (
           <ul className="divide-y divide-white/8">
             {oynanan.map((m) => (
-              <MacSatiri key={m.id} mac={m} adlar={adlar} yenile={yenile} setMesaj={setMesaj} />
+              <MacSatiri key={m.id} mac={m} bilgiler={bilgiler} yenile={yenile} setMesaj={setMesaj} />
             ))}
           </ul>
         )}
@@ -109,18 +115,19 @@ export default function AdminMaclar() {
 
 function MacSatiri({
   mac,
-  adlar,
+  bilgiler,
   yenile,
   setMesaj,
 }: {
   mac: Mac;
-  adlar: Record<string, string>;
+  bilgiler: Record<string, { ad: string; logo: string | null }>;
   yenile: () => Promise<void>;
   setMesaj: (m: { tur: "basari" | "hata"; metin: string }) => void;
 }) {
   const [ev, setEv] = useState(mac.ev_skor?.toString() ?? "");
   const [dep, setDep] = useState(mac.dep_skor?.toString() ?? "");
   const [bekle, setBekle] = useState(false);
+  const [gorsel, setGorsel] = useState(false);
   const degisti =
     ev !== (mac.ev_skor?.toString() ?? "") || dep !== (mac.dep_skor?.toString() ?? "");
 
@@ -166,7 +173,7 @@ function MacSatiri({
       {/* Mobilde her takım kendi skorunun yanında; masaüstünde klasik karşılaşma dizilimi */}
       <div className="grid grid-cols-[1fr_60px] items-center gap-2 md:grid-cols-[1fr_56px_16px_56px_1fr]">
         <span className="truncate font-[family-name:var(--font-data)] font-semibold md:order-1 md:text-right">
-          {adlar[mac.ev_id] ?? "?"}
+          {bilgiler[mac.ev_id]?.ad ?? "?"}
         </span>
         <Girdi
           aria-label="Ev sahibi skoru"
@@ -176,7 +183,7 @@ function MacSatiri({
           className="text-center font-[family-name:var(--font-display)] text-xl md:order-2"
         />
         <span className="truncate font-[family-name:var(--font-data)] font-semibold md:order-5">
-          {adlar[mac.dep_id] ?? "?"}
+          {bilgiler[mac.dep_id]?.ad ?? "?"}
         </span>
         <Girdi
           aria-label="Deplasman skoru"
@@ -192,10 +199,32 @@ function MacSatiri({
         <Dugme type="button" onClick={kaydet} disabled={!degisti || bekle}>
           Kaydet
         </Dugme>
+        {mac.ev_skor !== null && mac.dep_skor !== null && (
+          <Dugme type="button" tur="ikincil" onClick={() => setGorsel(true)}>
+            Görsel
+          </Dugme>
+        )}
         <Dugme type="button" tur="tehlike" onClick={sil}>
           Sil
         </Dugme>
       </div>
+
+      {gorsel && mac.ev_skor !== null && mac.dep_skor !== null && (
+        <MacGorseli
+          kapat={() => setGorsel(false)}
+          mac={{
+            evAd: bilgiler[mac.ev_id]?.ad ?? "?",
+            depAd: bilgiler[mac.dep_id]?.ad ?? "?",
+            evLogo: bilgiler[mac.ev_id]?.logo,
+            depLogo: bilgiler[mac.dep_id]?.logo,
+            evSkor: mac.ev_skor,
+            depSkor: mac.dep_skor,
+            tarih: mac.oynanma,
+            sezon: SITE.sezon,
+            hukmen: mac.durum === "hukmen",
+          }}
+        />
+      )}
     </li>
   );
 }

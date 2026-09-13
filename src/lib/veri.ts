@@ -473,3 +473,33 @@ export async function getTakimMaclari(slug: string, adet = 10) {
 
   return { oynanan, sirada, toplam: kendi.length };
 }
+
+/**
+ * Onaylanmış takım fotoğrafları — takım adıyla birlikte. Galeri sayfası
+ * bunları kendi kayıtlarının yanında gösterir; ayrıca `gorseller` tablosuna
+ * kopyalanmaz, tek kayıt kalır (panelden silince her yerden gider).
+ */
+export async function getOnayliTakimFotograflari(limit = 60): Promise<
+  (TakimFotografi & { takimAd: string; takimSlug: string })[]
+> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("takim_fotograflari")
+    .select("id, url, aciklama, yukleyen_ad, takimlar:takim_id(ad, slug)")
+    .eq("durum", "onayli")
+    .order("olusturuldu", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+
+  type Satir = TakimFotografi & { takimlar: { ad: string; slug: string } | null };
+  return (data as unknown as Satir[])
+    .filter((f) => f.takimlar)
+    .map((f) => ({
+      id: f.id,
+      url: f.url,
+      aciklama: f.aciklama,
+      yukleyen_ad: f.yukleyen_ad,
+      takimAd: f.takimlar!.ad,
+      takimSlug: f.takimlar!.slug,
+    }));
+}

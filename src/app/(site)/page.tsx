@@ -1,11 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
+import { HaftaninOzeti } from "@/components/haftanin-ozeti";
 import { PuanTablosu } from "@/components/puan-tablosu";
 import { Reveal } from "@/components/reveal";
 import { Sayac } from "@/components/sayac";
 import { SosyalIcerikler } from "@/components/sosyal-icerikler";
+import { haftaninOzeti } from "@/lib/hafta";
 import {
   getGaleri,
+  getMaclar,
   getIcerik,
   getLigOzeti,
   getPuanDurumu,
@@ -35,6 +38,9 @@ export default async function Anasayfa() {
     getGaleri(YEDEK_GALERI),
     getSosyalIcerikler(6),
   ]);
+
+  const maclar = await getMaclar();
+  const hafta = haftaninOzeti(maclar, satirlar, ozet.takimSayisi);
 
   return (
     <>
@@ -105,6 +111,9 @@ export default async function Anasayfa() {
           </dl>
         </div>
       </section>
+
+      {/* HAFTANIN ÖZETİ */}
+      {hafta && <HaftaninOzeti ozet={hafta} />}
 
       {/* PUAN DURUMU */}
       <section className="mx-auto w-full max-w-[1180px] px-5 py-14 md:py-20">

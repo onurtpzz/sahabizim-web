@@ -11,6 +11,59 @@ import {
   talepleriGetir,
 } from "@/lib/admin-veri";
 
+type SunucuDurumu =
+  | { hazir: true; takim: number; mac: number; sezon: string | null }
+  | { hazir: false; sebep: string; mesaj: string };
+
+/**
+ * Sunucunun veritabanını görüp görmediğini gösteren şerit.
+ * Görmüyorsa site yedek veriyle çalışıyor demektir — sayfalar normal
+ * görünür ama rakamlar güncellenmez. Sessiz kalmasın diye buraya kondu.
+ */
+function BaglantiSeridi({ durum }: { durum: SunucuDurumu | null }) {
+  if (!durum) return null;
+
+  if (durum.hazir) {
+    return (
+      <p className="rounded border border-brand/40 bg-brand/8 px-4 py-3 text-sm text-[#cfe0d5]">
+        <strong className="text-brand-lite">Bağlantı iyi.</strong> Sitenin gördüğü
+        veritabanı: {durum.takim} takım · {durum.mac} maç
+        {durum.sezon ? ` · aktif sezon ${durum.sezon}` : " · aktif sezon yok"}.
+      </p>
+    );
+  }
+
+  return (
+    <div className="rounded border-l-[3px] border border-lose/60 border-l-lose bg-lose/10 px-4 py-4 text-[#ffd7d2]">
+      <p className="font-[family-name:var(--font-data)] text-base font-bold tracking-wide uppercase">
+        Dikkat · Site yedek veriyle çalışıyor
+      </p>
+      <p className="mt-2 text-sm">
+        Ziyaretçiye açık sayfalar (puan durumu, fikstür, takım sayfaları) şu anda
+        veritabanını okuyamıyor; eski, sabit listeyi gösteriyorlar. Sayfalar normal
+        görünür ama <strong>girdiğin skorlar sitede görünmez</strong>.
+      </p>
+      <p className="mt-2 text-sm opacity-80">{durum.mesaj}</p>
+      {durum.sebep === "ortam-degiskeni-yok" && (
+        <ol className="mt-3 grid list-decimal gap-1 pl-5 text-sm">
+          <li>
+            Vercel → proje → <strong>Settings → Environment Variables</strong>
+          </li>
+          <li>
+            <code>NEXT_PUBLIC_SUPABASE_URL</code> ve{" "}
+            <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> değerlerini{" "}
+            <code>web/.env.local</code> dosyasındakiyle birebir aynı gir
+          </li>
+          <li>
+            <strong>Deployments → ⋯ → Redeploy</strong> — bu değerler derleme
+            sırasında gömüldüğü için yeniden dağıtım şart
+          </li>
+        </ol>
+      )}
+    </div>
+  );
+}
+
 export default function AdminOzet() {
   const [sayilar, setSayilar] = useState<{
     sezon: string;
@@ -22,6 +75,20 @@ export default function AdminOzet() {
     foto: number;
   } | null>(null);
   const [hata, setHata] = useState("");
+  const [sunucu, setSunucu] = useState<SunucuDurumu | null>(null);
+
+  useEffect(() => {
+    fetch("/api/durum", { cache: "no-store" })
+      .then((r) => r.json())
+      .then(setSunucu)
+      .catch(() =>
+        setSunucu({
+          hazir: false,
+          sebep: "ulasilamadi",
+          mesaj: "Sunucu durum adresine ulaşılamadı.",
+        }),
+      );
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -58,9 +125,12 @@ export default function AdminOzet() {
 
   if (hata) {
     return (
-      <Uyari tur="hata">
-        {hata} — SQL dosyalarını Supabase&apos;de çalıştırdığından emin ol.
-      </Uyari>
+      <div className="grid gap-4">
+        <BaglantiSeridi durum={sunucu} />
+        <Uyari tur="hata">
+          {hata} — SQL dosyalarını Supabase&apos;de çalıştırdığından emin ol.
+        </Uyari>
+      </div>
     );
   }
 
@@ -76,6 +146,8 @@ export default function AdminOzet() {
 
   return (
     <div className="grid gap-6">
+      <BaglantiSeridi durum={sunucu} />
+
       <Panel baslik="Aktif sezon" sag={sayilar.sezon}>
         <dl className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-5">
           {kutular.map((k) => (

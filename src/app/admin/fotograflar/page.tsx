@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Dugme, Panel, Uyari } from "@/components/admin/ui";
 import {
   fotograflariGetir,
   fotografDurumu,
+  fotografOnayla,
+  fotografOnizlemeUrl,
   fotografSil,
   takimlariGetir,
   type TakimFotografi,
@@ -17,19 +19,24 @@ const SEKMELER = [
   { k: "red", l: "Reddedilen" },
 ] as const;
 
+/** Önizleme adresi durumu: adres, "yok" (dosya bulunamadı) ya da yükleniyor. */
+type Onizleme = string | "yok";
+
 export default function AdminFotograflar() {
   const [sekme, setSekme] = useState<(typeof SEKMELER)[number]["k"]>("bekliyor");
   const [kayitlar, setKayitlar] = useState<TakimFotografi[]>([]);
   const [takimlar, setTakimlar] = useState<Takim[]>([]);
+  const [onizleme, setOnizleme] = useState<Record<string, Onizleme>>({});
   const [mesaj, setMesaj] = useState<{ tur: "basari" | "hata"; metin: string } | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [islemde, setIslemde] = useState<string | null>(null);
 
   const adlar = useMemo(
     () => Object.fromEntries(takimlar.map((t) => [t.id, t.ad])),
     [takimlar],
   );
 
-  async function yenile() {
+  const yenile = useCallback(async () => {
     try {
       const [f, t] = await Promise.all([fotograflariGetir(), takimlariGetir()]);
       setKayitlar(f);
@@ -39,56 +46,122 @@ export default function AdminFotograflar() {
         tur: "hata",
         metin:
           e instanceof Error
-            ? `${e.message} — 07 numaralı SQL dosyasını Supabase'de çalıştırdın mı?`
+            ? `${e.message} — 07 ve 09 numaralı SQL dosyalarını Supabase'de çalıştırdın mı?`
             : "Okunamadı.",
       });
     }
     setYukleniyor(false);
-  }
+  }, []);
 
   useEffect(() => {
     yenile();
-  }, []);
+  }, [yenile]);
 
-  async function durumDegistir(id: string, durum: "bekliyor" | "onayli" | "red") {
+  const gorunen = useMemo(
+    () => kayitlar.filter((k) => k.durum === sekme),
+    [kayitlar, sekme],
+  );
+
+  /**
+   * Onay bekleyen fotoğraflar gizli kovada durduğu için `<img src>` ile
+   * doğrudan açılamaz; her biri için kısa ömürlü imzalı adres üretiliyor.
+   * Yayındakiler kalıcı adreslerini kullanır, imza gerekmez.
+   */
+  useEffect(() => {
+    let iptal = false;
+    const bekleyenler = gorunen.filter(
+      (f) => f.durum !== "onayli" && f.dosya_yolu && onizleme[f.id] === undefined,
+    );
+    if (bekleyenler.length === 0) return;
+
+    (async () => {
+      for (const f of bekleyenler) {
+        let sonuc: Onizleme = "yok";
+        try {
+          sonuc = await fotografOnizlemeUrl(f.dosya_yolu as string);
+        } catch {
+          sonuc = "yok";
+        }
+        if (iptal) return;
+        setOnizleme((o) => ({ ...o, [f.id]: sonuc }));
+      }
+    })();
+
+    return () => {
+      iptal = true;
+    };
+  }, [gorunen, onizleme]);
+
+  async function onayla(f: TakimFotografi) {
+    setIslemde(f.id);
     try {
-      await fotografDurumu(id, durum);
+      await fotografOnayla(f);
       setMesaj({
         tur: "basari",
         metin:
-          durum === "onayli"
-            ? "Fotoğraf yayına alındı. Sitede görünmesi bir dakikayı bulabilir."
-            : durum === "red"
-              ? "Fotoğraf reddedildi, sitede görünmeyecek."
-              : "Onay kuyruğuna geri alındı.",
+          "Fotoğraf yayına alındı. Dosya herkese açık kovaya taşındı; sitede görünmesi bir dakikayı bulabilir.",
+      });
+      await yenile();
+    } catch (e) {
+      setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Onaylanamadı." });
+    }
+    setIslemde(null);
+  }
+
+  async function durumDegistir(f: TakimFotografi, durum: "bekliyor" | "red") {
+    setIslemde(f.id);
+    try {
+      await fotografDurumu(f.id, durum);
+      setMesaj({
+        tur: "basari",
+        metin:
+          durum === "red"
+            ? "Fotoğraf reddedildi. Dosya gizli kovada duruyor, sitede görünmüyor."
+            : "Onay kuyruğuna geri alındı.",
       });
       await yenile();
     } catch (e) {
       setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Güncellenemedi." });
     }
+    setIslemde(null);
   }
 
-  async function sil(id: string) {
-    if (!window.confirm("Bu kayıt tamamen silinsin mi?")) return;
+  async function sil(f: TakimFotografi) {
+    if (!window.confirm("Bu kayıt ve dosyası tamamen silinsin mi?")) return;
+    setIslemde(f.id);
     try {
-      await fotografSil(id);
-      setMesaj({ tur: "basari", metin: "Kayıt silindi." });
+      await fotografSil(f);
+      setMesaj({ tur: "basari", metin: "Kayıt ve dosyası silindi." });
+      setOnizleme((o) => {
+        const y = { ...o };
+        delete y[f.id];
+        return y;
+      });
       await yenile();
     } catch (e) {
       setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Silinemedi." });
     }
+    setIslemde(null);
   }
 
   const sayilar = Object.fromEntries(
     SEKMELER.map((s) => [s.k, kayitlar.filter((k) => k.durum === s.k).length]),
   ) as Record<string, number>;
-  const gorunen = kayitlar.filter((k) => k.durum === sekme);
+
+  const bekleyenSayisi = sayilar.bekliyor ?? 0;
 
   if (yukleniyor) return <p className="text-muted-dark">Yükleniyor…</p>;
 
   return (
     <div className="grid gap-6">
       {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+
+      {bekleyenSayisi >= 100 && (
+        <Uyari tur="hata">
+          Onay kuyruğunda {bekleyenSayisi} fotoğraf var. 120'ye ulaşıldığında yeni
+          yüklemeler geçici olarak durur — kuyruğu boşaltmakta fayda var.
+        </Uyari>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {SEKMELER.map((s) => (
@@ -110,68 +183,97 @@ export default function AdminFotograflar() {
       <Panel baslik={SEKMELER.find((s) => s.k === sekme)!.l} sag={`${gorunen.length} fotoğraf`}>
         {gorunen.length === 0 ? (
           <p className="p-5 text-sm text-muted-dark">
-            {sekme === "bekliyor"
-              ? "Onay bekleyen fotoğraf yok."
-              : "Bu listede kayıt yok."}
+            {sekme === "bekliyor" ? "Onay bekleyen fotoğraf yok." : "Bu listede kayıt yok."}
           </p>
         ) : (
           <ul className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
-            {gorunen.map((f) => (
-              <li key={f.id} className="overflow-hidden rounded border border-white/12 bg-ink-2">
-                <a href={f.url} target="_blank" rel="noopener noreferrer" className="block">
-                  {/* Yönetim ekranı — optimizasyona gerek yok */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={f.url}
-                    alt={f.aciklama ?? "Yüklenen fotoğraf"}
-                    className="aspect-4/3 w-full bg-black/30 object-cover"
-                  />
-                </a>
-                <div className="grid gap-2 p-3">
-                  <p className="font-[family-name:var(--font-data)] font-semibold">
-                    {adlar[f.takim_id] ?? "Silinmiş takım"}
-                  </p>
-                  {f.aciklama && <p className="text-sm text-[#cfe0d5]">{f.aciklama}</p>}
-                  <p className="text-xs text-muted-dark">
-                    {f.yukleyen_ad ? `${f.yukleyen_ad} · ` : ""}
-                    {new Date(f.olusturuldu).toLocaleString("tr-TR", {
-                      day: "2-digit",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+            {gorunen.map((f) => {
+              const kaynak =
+                f.durum === "onayli" ? f.url : f.dosya_yolu ? onizleme[f.id] : f.url;
+              const dosyaYok = kaynak === "yok";
+              const hazir = typeof kaynak === "string" && kaynak !== "yok" && kaynak !== "";
 
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {f.durum !== "onayli" && (
-                      <Dugme type="button" onClick={() => durumDegistir(f.id, "onayli")}>
-                        Onayla
-                      </Dugme>
-                    )}
-                    {f.durum !== "red" && (
+              return (
+                <li
+                  key={f.id}
+                  className="overflow-hidden rounded border border-white/12 bg-ink-2"
+                >
+                  {hazir ? (
+                    <a href={kaynak} target="_blank" rel="noopener noreferrer" className="block">
+                      {/* Yönetim ekranı — optimizasyona gerek yok */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={kaynak}
+                        alt={f.aciklama ?? "Yüklenen fotoğraf"}
+                        className="aspect-4/3 w-full bg-black/30 object-cover"
+                      />
+                    </a>
+                  ) : (
+                    <div className="grid aspect-4/3 w-full place-items-center bg-black/30 px-4 text-center text-sm text-muted-dark">
+                      {dosyaYok
+                        ? "Dosya bulunamadı — yükleme yarıda kalmış. Sil ile temizle."
+                        : "Önizleme hazırlanıyor…"}
+                    </div>
+                  )}
+
+                  <div className="grid gap-2 p-3">
+                    <p className="font-[family-name:var(--font-data)] font-semibold">
+                      {adlar[f.takim_id] ?? "Silinmiş takım"}
+                    </p>
+                    {f.aciklama && <p className="text-sm text-[#cfe0d5]">{f.aciklama}</p>}
+                    <p className="text-xs text-muted-dark">
+                      {f.yukleyen_ad ? `${f.yukleyen_ad} · ` : ""}
+                      {new Date(f.olusturuldu).toLocaleString("tr-TR", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {f.durum !== "onayli" && (
+                        <Dugme
+                          type="button"
+                          onClick={() => onayla(f)}
+                          disabled={islemde === f.id || dosyaYok}
+                        >
+                          {islemde === f.id ? "Bekle…" : "Onayla"}
+                        </Dugme>
+                      )}
+                      {f.durum !== "red" && (
+                        <Dugme
+                          type="button"
+                          tur="ikincil"
+                          onClick={() => durumDegistir(f, "red")}
+                          disabled={islemde === f.id}
+                        >
+                          Reddet
+                        </Dugme>
+                      )}
                       <Dugme
                         type="button"
-                        tur="ikincil"
-                        onClick={() => durumDegistir(f.id, "red")}
+                        tur="tehlike"
+                        onClick={() => sil(f)}
+                        disabled={islemde === f.id}
                       >
-                        Reddet
+                        Sil
                       </Dugme>
-                    )}
-                    <Dugme type="button" tur="tehlike" onClick={() => sil(f.id)}>
-                      Sil
-                    </Dugme>
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Panel>
 
       <Uyari>
         Fotoğraflar takım sayfasından ziyaretçiler tarafından yükleniyor ve{" "}
-        <strong>onaylanana kadar sitede görünmüyor</strong>. Reddettiğin kayıt listede
-        kalır; tamamen kurtulmak için <strong>Sil</strong> kullan.
+        <strong>onaylanana kadar gizli kovada duruyor</strong> — adresini bilen biri bile
+        açamaz. Onayladığın anda dosya herkese açık kovaya taşınır ve sitede görünür.
+        Reddettiğin kayıt listede kalır; dosyayla birlikte tamamen kurtulmak için{" "}
+        <strong>Sil</strong> kullan.
       </Uyari>
     </div>
   );

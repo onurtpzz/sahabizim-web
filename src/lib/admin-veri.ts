@@ -498,10 +498,21 @@ function sezonSlug(ad: string) {
 }
 
 // ----------------------------------------------------- takım fotoğrafları
+//
+// Ziyaretçi yüklemesi GİZLİ `takim-fotograflari-bekleyen` kovasına gider;
+// oradaki dosyayı yalnız yönetici görebilir. Onaylandığı anda dosya herkese
+// açık `takim-fotograflari` kovasına taşınır ve kalıcı adresini alır.
+// Böylece onaydan geçmemiş bir fotoğrafın adresi hiçbir zaman dışarı çıkmaz.
+
+const FOTO_KOVA = "takim-fotograflari";
+const FOTO_BEKLEYEN_KOVA = "takim-fotograflari-bekleyen";
+
 export type TakimFotografi = {
   id: string;
   takim_id: string;
   url: string;
+  /** Dosyanın kovadaki yolu. 09 öncesi yüklenen eski kayıtlarda boş. */
+  dosya_yolu: string | null;
   aciklama: string | null;
   yukleyen_ad: string | null;
   durum: "bekliyor" | "onayli" | "red";
@@ -517,12 +528,60 @@ export async function fotograflariGetir(durum?: "bekliyor" | "onayli" | "red") {
   return (data ?? []) as TakimFotografi[];
 }
 
+/**
+ * Onay beklerken fotoğrafı panelde göstermek için kısa ömürlü adres.
+ * Kova gizli olduğu için `<img src>` doğrudan çalışmaz; imzalı adres gerekir.
+ * Bağlantı yalnız yöneticinin tarayıcısında üretilir ve bir saat geçerlidir.
+ */
+export async function fotografOnizlemeUrl(dosyaYolu: string, saniye = 3600) {
+  const { data, error } = await db()
+    .storage.from(FOTO_BEKLEYEN_KOVA)
+    .createSignedUrl(dosyaYolu, saniye);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+/**
+ * Onay: dosya gizli kovadan yayın kovasına taşınır, kayda kalıcı adresi yazılır.
+ * Taşıma başarısız olursa kayıt onaylanmaz — sitede kırık görsel çıkmasın.
+ */
+export async function fotografOnayla(f: TakimFotografi) {
+  // 09 öncesi kayıtlar zaten yayın kovasında; sadece durumu değişir.
+  if (!f.dosya_yolu) {
+    await fotografDurumu(f.id, "onayli");
+    return;
+  }
+
+  const { error: tasimaHatasi } = await db()
+    .storage.from(FOTO_BEKLEYEN_KOVA)
+    .move(f.dosya_yolu, f.dosya_yolu, { destinationBucket: FOTO_KOVA });
+
+  // Daha önce taşınmış bir kaydı yeniden onaylıyor olabiliriz; o durumda
+  // kaynak dosya bulunamaz ve bu bir hata değildir.
+  if (tasimaHatasi && !/not found|exists/i.test(tasimaHatasi.message)) {
+    throw new Error("Dosya yayın kovasına taşınamadı: " + tasimaHatasi.message);
+  }
+
+  const url = db().storage.from(FOTO_KOVA).getPublicUrl(f.dosya_yolu).data.publicUrl;
+  const { error } = await db()
+    .from("takim_fotograflari")
+    .update({ durum: "onayli", url })
+    .eq("id", f.id);
+  if (error) throw error;
+}
+
 export async function fotografDurumu(id: string, durum: "bekliyor" | "onayli" | "red") {
   const { error } = await db().from("takim_fotograflari").update({ durum }).eq("id", id);
   if (error) throw error;
 }
 
-export async function fotografSil(id: string) {
-  const { error } = await db().from("takim_fotograflari").delete().eq("id", id);
+/** Kaydı ve dosyasını birlikte siler; kovada artık kimse kullanmadığı için. */
+export async function fotografSil(f: TakimFotografi) {
+  if (f.dosya_yolu) {
+    const kova = f.durum === "onayli" ? FOTO_KOVA : FOTO_BEKLEYEN_KOVA;
+    // Dosya zaten yoksa sorun değil; asıl iş kaydın silinmesi.
+    await db().storage.from(kova).remove([f.dosya_yolu]);
+  }
+  const { error } = await db().from("takim_fotograflari").delete().eq("id", f.id);
   if (error) throw error;
 }

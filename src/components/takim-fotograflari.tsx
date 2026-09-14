@@ -233,8 +233,9 @@ function YuklemeFormu({
         className="mb-5 grid gap-4 rounded border border-brand/40 bg-white p-5"
       >
         <p className="text-sm text-muted">
-          JPG, PNG veya WEBP · en fazla 8 MB. Gönderdiğin fotoğraf önce yönetim onayından
-          geçer, sonra yayınlanır.
+          JPG, PNG veya WEBP · en fazla 12 MB. Fotoğrafı gönderirken boyutunu kendimiz
+          küçültüyoruz, telefondan çektiğin kareyi olduğu gibi seçebilirsin. Gönderdiğin
+          fotoğraf önce yönetim onayından geçer, sonra yayınlanır.
         </p>
 
         <div className="grid gap-4 md:grid-cols-[200px_1fr]">

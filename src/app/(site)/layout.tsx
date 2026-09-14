@@ -19,7 +19,8 @@ export default async function SiteLayout({
     name: SITE.ad,
     url: SITE.url,
     slogan: SITE.slogan,
-    sport: ["Futbol", "Basketbol", "Voleybol"],
+    // Ligde yalnız futbol var; arama motorlarına da öyle bildiriliyor.
+    sport: "Futbol",
     logo: `${SITE.url}/images/logo.png`,
     telephone: SITE.telefonGorunen,
   };

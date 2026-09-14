@@ -93,18 +93,16 @@ export default async function Anasayfa() {
 
         {!hataVar && (
         <div className="relative border-t border-white/15 bg-black/25">
-          <dl className="mx-auto grid w-full max-w-[1180px] grid-cols-2 px-5 md:grid-cols-4">
+          {/* "3 Branş" kaldırıldı: ligde yalnız futbol var, sayı yanıltıcıydı. */}
+          <dl className="mx-auto grid w-full max-w-[1180px] grid-cols-3 px-5">
             {[
               { s: ozet.takimSayisi, l: "Takım" },
               { s: ozet.toplamMac, l: "Oynanan Maç" },
               { s: ozet.toplamGol, l: "Gol" },
-              { s: 3, l: "Branş" },
             ].map((x, i) => (
               <div
                 key={x.l}
-                className={`py-6 text-center ${i < 3 ? "md:border-r md:border-white/15" : ""} ${
-                  i < 2 ? "border-b border-white/15 md:border-b-0" : ""
-                } ${i % 2 === 0 ? "border-r border-white/15 md:border-r" : ""}`}
+                className={`py-6 text-center ${i < 2 ? "border-r border-white/15" : ""}`}
               >
                 <dd className="display text-[clamp(1.9rem,5vw,2.9rem)] text-white">
                   <Sayac hedef={x.s} />

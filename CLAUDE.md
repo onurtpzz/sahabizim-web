@@ -88,9 +88,21 @@ token kullan: `bg-ink`, `text-brand`, `border-line`, `text-gold`, `text-lose` vb
 - **Supabase tek sorguda en fazla 1000 satır döndürür ve fazlasını hata vermeden keser.**
   `getMaclar()` bu yüzden `.range()` ile sayfa sayfa çekiyor. Çok satır dönebilecek yeni bir
   sorgu yazarsan aynı kalıbı uygula, yoksa veri sessizce eksilir.
-- **Sessiz yedeğe düşme.** `getPuanDurumu()` sorgu hata verirse `src/data/takimlar.ts`
-  yedeğine düşüyor; sayfa normal görünür ama rakamlar donuktur. 13.09.2026'da tam bu yaşandı.
-  Yönetim panelindeki bağlantı şeridi (`/api/durum`) bunu fark etmek için var.
+- **Hata ≠ boş sonuç ≠ yedek.** `veri.ts` bu üçünü `VeriSonucu<T>` ile ayırıyor:
+  `hazir` (okundu; boş dönmesi de geçerli bir cevap), `yedek` (Supabase hiç ayarlı değil),
+  `hata` (sorgu reddedildi). **Hata anında eski veri gösterilmiyor** — sayfa
+  `src/components/veri-uyarisi.tsx` şeridini basıyor. Yeni bir veri fonksiyonu yazarken aynı
+  ayrımı koru; `!data?.length` durumunu hata saymak 13.09.2026'daki "donmuş rakamlar"
+  sorununun kaynağıydı. Yönetim panelindeki bağlantı şeridi (`/api/durum`) hâlâ erken uyarı.
+- **PostgREST reddedilen yazmayı HATA OLARAK DÖNDÜRMEZ.** RLS bir `update`/`delete`
+  işlemini engellerse `error` null gelir, sadece 0 satır etkilenir. Panel "kaydedildi" der,
+  hiçbir şey değişmez. Yazmalarda `.select("id")` ekleyip dönen dizinin boş olup olmadığına
+  bak (`macKaydet`, `talepSil` bu kalıpta). Yeni bir tabloya yazacaksan o tabloda ilgili
+  **politikanın var olduğunu** da doğrula — `talepler` tablosunda DELETE politikası hiç yoktu.
+- **Önbellek iki katmanlı.** Site tarafındaki her veri fonksiyonu `cache(hafizala(...))` ile
+  sarılı: React `cache()` tek istek içindeki tekrarları, `src/lib/onbellek.ts` ise ayrı
+  render'lar arasını birleştirir. İkincisi olmadan statik üretimde 64 takım sayfası aynı
+  sorguyu 64 kez atıyordu. Yeni fonksiyonda aynı sarmalamayı uygula.
 - **Site adresi sabit değil.** `src/lib/site.ts` içindeki `siteAdresi()` sırayla
   `NEXT_PUBLIC_SITE_URL` → `VERCEL_PROJECT_PRODUCTION_URL` → sabit adrese bakar.
   `og:image`, kanonik adres ve sitemap buradan türüyor; sabit adres yazma.
@@ -123,13 +135,60 @@ sınır böylece yüklenebilecek dosya sayısını da kapatıyor. Fotoğraf tara
 > politika içinden tabloyu sayman gerekiyorsa fonksiyonu `security definer` yap — yoksa
 > sayım hep 0 döner ve kural sessizce işlevsiz kalır.
 
+## Yönetim paneli kalıpları
+
+Panel 14.09.2026'da baştan sona elden geçirildi. Ortak bileşenler
+`src/components/admin/ui.tsx` içinde — **yeni bir ekran yazarken bunları kullan**, yenisini
+icat etme. Panelde en çok görülen sorun kalıp bölünmesiydi: aynı iş iki ayrı yerde iki farklı
+olgunlukta yapılmıştı.
+
+- `Bildirim` — kaydetme/hata bildirimi, **sağ altta**, kendiliğinden kapanır. Sayfa üstünde
+  duran uyarı, uzun listenin ortasındayken hiç görünmüyordu. Her sayfa tek bir
+  `mesaj` state'i tutar ve bunu basar.
+- `Pencere` — kalıcı pencere (modal): `role="dialog"`, Esc, açılışta odak, kapanınca odağın
+  geri dönmesi, kaydırma kilidi. Elle `fixed inset-0` yazma.
+- `DosyaSec` — dosya seçtiren etiket-düğme. `<input type="file" className="hidden">`
+  **kullanma**: `display:none` odaklanamaz, o alan klavyeyle erişilemez hale gelir.
+- `BosDurum` / `Iskelet` — boş liste ve yükleme. Düz "Kayıt yok" / "Yükleniyor…" yazma.
+- `TehlikeliBolge` — geri alınamayan işlemler (sezon sıfırlama) bu kırmızı kutuda durur.
+- `Rakam` — menüdeki bekleyen iş rozeti; sayılar `bekleyenIsler()` üzerinden gelir.
+  **Rozetin saydığı şey ile sayfanın gösterdiği liste aynı tanımda olmalı** — biri "tarihi
+  geçmiş skorsuz", öteki "tüm oynanacak" sayınca menüde 3, sayfada 17 yazıyordu.
+- `src/lib/kirli.ts` — kaydedilmemiş değişiklik defteri. Kutu doldurulan her ekran
+  `useKirli(benzersizId, degisti)` çağırmalı; layout menüden çıkışta soruyor. *`beforeunload`
+  mobilde çalışmaz (iOS Safari desteklemiyor); mobilde işi yapışkan şerit ve menü onayı
+  görüyor.*
+- **Sıralama düğmeleri** `siradaTasi()` kullanır: listeyi 0,1,2… diye numaralayıp komşuyla
+  takas eder. `sira` değerini doğrudan ±1 yapma — bütün kayıtlar `sira = 0` başladığı için
+  bu, kaydı komşusuyla değiştirmek yerine listenin ucuna fırlatıyordu.
+- **Silmek dosyayı da siler.** Görsel/takım/fotoğraf silen her işlem depodaki dosyayı da
+  kaldırır (`dosyalariSil`). Sıra: **önce veritabanı satırı, sonra dosya** — tersi olsaydı
+  satır silme patlayınca sitede kırık görsel kalırdı. Dosya silinemezse işlem başarısız
+  sayılmaz, konsola not düşülür.
+- **Yükleme doğrulaması iki katmanlı:** `dosyaYukle` içinde tür/boyut (anlaşılır mesaj için)
+  ve kovanın kendi ayarında (paneli atlayan istek için, `15-gorsel-kovasi.sql`). Dosya
+  uzantısı **MIME türünden** üretilir, dosya adından değil.
+- Sabit site görsellerinde **slot başına tek kayıt** kuralı geçerli (`slotGorseliDegistir`).
+  Eskiden her yükleme yeni satır açıyordu ve "Kaldır" bir önceki fotoğrafı geri getiriyordu.
+
 ## Veritabanı
 
 Yedek yok — yukarıdaki "CANLI VERİYE DOKUNMA" kuralı burada da geçerli.
 
-SQL dosyaları `supabase/` altında, numara sırasıyla çalıştırılır. Yeni bir dosya eklersen
-Supabase → SQL Editor'da çalıştırılması gerektiğini söyle. RLS uyarısı çıkarsa
-**Run and enable RLS** denir; dosyalar RLS'i zaten kendisi açıyor.
+SQL dosyaları `supabase/` altında, numara sırasıyla çalıştırılır (01–15 çalıştırıldı).
+Yeni bir dosya eklersen Supabase → SQL Editor'da çalıştırılması gerektiğini söyle. RLS
+uyarısı çıkarsa **Run and enable RLS** denir; dosyalar RLS'i zaten kendisi açıyor.
+
+**Sırayı mutlaka söyle — hangisi önce:**
+- Kod bir şeyi *kullanmayı bırakıyorsa* (sütun siliniyor) → **önce kod deploy**, sonra SQL.
+  Tersi olursa canlıdaki eski kod olmayan sütunu sorar ve sayfa hata verir.
+- Kod *yeni bir şeye ihtiyaç duyuyorsa* (yeni fonksiyon, görünüm, politika) → **önce SQL**,
+  sonra kod deploy.
+
+Sezon sıfırlama ve arşivleme artık Postgres fonksiyonlarında (`13-sezon-sifirlama.sql`):
+`yeni_sezon` ve `sezonu_arsivle`, ikisi de `security definer` + `yonetici_mi()` kontrollü.
+Dört adım tek transaction — panelden `supabase.rpc()` ile çağrılıyor. Sıfırlamayı geri alma
+reçetesi o dosyanın sonunda; `devir_*` değerleri arşiv satırında saklanıyor.
 
 Puan tablosunun tutarlılığı `10-puan-tutarliligi.sql` içindeki kısıtlarla korunuyor:
 oynanmış/hükmen maçta skor zorunlu, devirde `O = G + B + M`, negatif değer yok.

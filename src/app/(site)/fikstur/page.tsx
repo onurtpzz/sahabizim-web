@@ -57,14 +57,12 @@ export default async function FiksturSayfasi({
     <div className="mx-auto w-full max-w-[1180px] px-5 py-12 md:py-16">
       <p className="eyebrow text-brand">{SITE.sezon} Sezonu</p>
       <h1 className="display mt-2 text-[clamp(2.2rem,6vw,3.6rem)]">Fikstür</h1>
-      <p className="mt-3 max-w-[60ch] text-muted">
-        {oynanan.length} maç oynandı{oynanacak.length > 0 && `, ${oynanacak.length} maç bekliyor`}.
-        Sonuçlar girildiği anda{" "}
-        <Link href="/puan-durumu" className="font-semibold text-brand hover:underline">
-          puan durumuna
-        </Link>{" "}
-        işlenir.
-      </p>
+      <Link
+        href="/puan-durumu"
+        className="mt-5 inline-flex items-center gap-2 rounded-sm bg-brand px-6 py-3 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5 hover:bg-brand-deep"
+      >
+        Güncel puan durumunu görmek için tıklayın →
+      </Link>
 
       {maclar.length === 0 ? (
         <div className="mt-8 rounded border border-line bg-white p-8">

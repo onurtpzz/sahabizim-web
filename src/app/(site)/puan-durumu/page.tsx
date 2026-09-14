@@ -20,8 +20,7 @@ export default async function PuanDurumuSayfasi() {
       <h1 className="display mt-2 text-[clamp(2.2rem,6vw,3.6rem)]">Puan Durumu</h1>
       <p className="mt-3 max-w-[62ch] text-muted">
         {ozet.takimSayisi} takım, {ozet.toplamMac} oynanan maç, {ozet.toplamGol} gol.
-        Sıralama puan, averaj ve atılan gol sırasıyla yapılır; henüz maç oynamamış takımlar
-        tablonun sonunda listelenir.
+        Sıralama puan, averaj ve atılan gol sırasıyla yapılır.
       </p>
 
       <div className="mt-7">

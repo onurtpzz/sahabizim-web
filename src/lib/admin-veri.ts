@@ -427,10 +427,24 @@ export async function devirKaydet(
   devir: { devir_o: number; devir_g: number; devir_b: number; devir_m: number; devir_a: number; devir_y: number },
 ) {
   const { devir_o, devir_g, devir_b, devir_m } = devir;
-  if (devir_g + devir_b + devir_m > devir_o) {
+  const toplam = devir_g + devir_b + devir_m;
+
+  /**
+   * Eşitlik şart — eskiden yalnız "fazla olamaz" diye bakılıyordu, yani
+   * "8 maç oynadı ama 3 sonuç girildi" kabul ediliyordu ve puan tablosunda
+   * O ile G/B/M birbirini tutmuyordu. Aynı kural `10-puan-tutarliligi.sql`
+   * ile veritabanına da yazıldı; buradaki kontrol sadece anlaşılır bir
+   * mesaj vermek için, asıl güvence oradaki kısıt.
+   */
+  if (toplam !== devir_o) {
     throw new Error(
-      `G+B+M (${devir_g + devir_b + devir_m}) oynanan maçtan (${devir_o}) fazla olamaz.`,
+      `G+B+M toplamı (${toplam}) oynanan maç sayısına (${devir_o}) eşit olmalı. ` +
+        `Fark: ${Math.abs(toplam - devir_o)} maç.`,
     );
+  }
+
+  if (Object.values(devir).some((v) => v < 0)) {
+    throw new Error("Devir değerleri negatif olamaz.");
   }
   const { error } = await db().from("takimlar").update(devir).eq("id", takimId);
   if (error) throw error;

@@ -280,17 +280,41 @@ export const getMaclar = cache(async (): Promise<FiksturMaci[]> => {
   const sezonId = sezon?.[0]?.id;
   if (!sezonId) return [];
 
-  const { data, error } = await supabase
-    .from("maclar")
-    .select(
-      "id, oynanma, durum, ev_skor, dep_skor, ev:ev_id(ad, slug, logo_url), dep:dep_id(ad, slug, logo_url)",
-    )
-    .eq("sezon_id", sezonId)
-    .order("oynanma", { ascending: false });
+  /**
+   * DİKKAT — Supabase tek sorguda en fazla 1000 satır döndürür ve fazlasını
+   * HATA VERMEDEN keser. 64 takımlı bir sezonda bu sınır 30. hafta civarında
+   * aşılır; o noktadan sonra fikstür, takım sayfasındaki maç listesi ve
+   * haftanın özeti sessizce eksik veriyle çalışırdı. Bu yüzden sonuç bitene
+   * kadar sayfa sayfa çekiliyor.
+   *
+   * Sıralamada `id` de var: `oynanma` eşit (ya da boş) satırlarda sıra
+   * belirsiz kalırsa sayfalar arasında kayıt tekrarlanır veya atlanır.
+   */
+  const SAYFA = 1000;
+  const satirlar: MacSatiriDB[] = [];
 
-  if (error || !data) return [];
+  for (let bas = 0; ; bas += SAYFA) {
+    const { data, error } = await supabase
+      .from("maclar")
+      .select(
+        "id, oynanma, durum, ev_skor, dep_skor, ev:ev_id(ad, slug, logo_url), dep:dep_id(ad, slug, logo_url)",
+      )
+      .eq("sezon_id", sezonId)
+      .order("oynanma", { ascending: false })
+      .order("id", { ascending: false })
+      .range(bas, bas + SAYFA - 1);
 
-  return (data as unknown as MacSatiriDB[])
+    if (error) {
+      console.warn("Maçlar okunamadı:", error.message);
+      break;
+    }
+    if (!data?.length) break;
+
+    satirlar.push(...(data as unknown as MacSatiriDB[]));
+    if (data.length < SAYFA) break;
+  }
+
+  return satirlar
     .filter((m) => m.ev && m.dep)
     .map((m) => ({
       id: m.id,

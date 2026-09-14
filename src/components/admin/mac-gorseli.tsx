@@ -175,10 +175,23 @@ export function MacGorseli({
 
     // SahaBizim logosu — logonun kendi zemini koyu yeşil olduğu için
     // arkasına açık bir daire ve altın halka konuyor, yoksa zemine karışıyor.
-    const logoBoy = 164;
-    const logoMerkezY = 50 + logoBoy / 2;
+    const logoBoy = 245;
+    const logoMerkezY = 36 + logoBoy / 2;
     const logo = await gorselYukle("/images/logo.png");
     ctx.textAlign = "center";
+
+    // "Maç Yapalım" logosu üstte iki yana, küçük. Aynı kaynaktan (site içi)
+    // geldiği için canvas kirlenmiyor; yüklenemezse sessizce atlanıyor.
+    const yanLogo = await gorselYukle("/images/mac-yapalim.png");
+    if (yanLogo) {
+      const enG = 150;
+      const oran = enG / yanLogo.width;
+      const g = enG;
+      const yk = yanLogo.height * oran;
+      const yanY = logoMerkezY - yk / 2;
+      ctx.drawImage(yanLogo, 48, yanY, g, yk);
+      ctx.drawImage(yanLogo, BOYUT - 48 - g, yanY, g, yk);
+    }
 
     const halo = ctx.createRadialGradient(
       M, logoMerkezY, 10,
@@ -212,7 +225,8 @@ export function MacGorseli({
     ctx.fillStyle = "#D4A72C";
     ctx.font = `700 30px ${data}`;
     if ("letterSpacing" in ctx) ctx.letterSpacing = "10px";
-    ctx.fillText("SAHABİZİM LİGİ", M, 272);
+    // Logo büyüdüğü için yazılar aşağı kaydı; altın halkayla çakışmasın.
+    ctx.fillText("SAHABİZİM LİGİ", M, 322);
 
     // Üst etiket — sonuç mu, yaklaşan maç duyurusu mu?
     const duyuru = mac.evSkor === null || mac.depSkor === null;
@@ -221,7 +235,7 @@ export function MacGorseli({
     ctx.fillText(
       duyuru ? "YAKLAŞAN MAÇ" : mac.hukmen ? "HÜKMEN SONUÇ" : "MAÇ SONUCU",
       M,
-      318,
+      362,
     );
     if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
 

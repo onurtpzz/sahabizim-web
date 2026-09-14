@@ -7,16 +7,51 @@ import { gunBasligi, ligGunu, macSaati } from "@/lib/zaman";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Fikstür",
-  description: `SahaBizim Ligi ${SITE.sezon} sezonu fikstürü, maç sonuçları ve oynanacak maçlar.`,
-  alternates: { canonical: "/fikstur" },
-};
+/** Bir sayfada gösterilen sonuç sayısı. Oynanacak maçlar bölünmez. */
+const SONUC_SAYFA_BOYU = 40;
 
-export default async function FiksturSayfasi() {
-  const maclar = await getMaclar();
+type Arama = { sayfa?: string };
+
+function sayfaNo(ham: string | undefined, enFazla: number) {
+  const n = Number.parseInt(ham ?? "1", 10);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(n, Math.max(enFazla, 1));
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Arama>;
+}): Promise<Metadata> {
+  const { sayfa } = await searchParams;
+  const n = Number.parseInt(sayfa ?? "1", 10);
+  const ilk = !Number.isFinite(n) || n <= 1;
+
+  return {
+    title: ilk ? "Fikstür" : `Fikstür — sayfa ${n}`,
+    description: ilk
+      ? `SahaBizim Ligi ${SITE.sezon} sezonu fikstürü, maç sonuçları ve oynanacak maçlar.`
+      : `SahaBizim Ligi ${SITE.sezon} sezonu geçmiş maç sonuçları — sayfa ${n}.`,
+    // Her sayfa kendini işaret ediyor; aksi hâlde Google alt sayfaları
+    // birinci sayfanın kopyası sayıp yok sayardı.
+    alternates: { canonical: ilk ? "/fikstur" : `/fikstur?sayfa=${n}` },
+  };
+}
+
+export default async function FiksturSayfasi({
+  searchParams,
+}: {
+  searchParams: Promise<Arama>;
+}) {
+  const [maclar, { sayfa }] = await Promise.all([getMaclar(), searchParams]);
+
   const oynanacak = maclar.filter((m) => m.durum === "oynanacak" || m.durum === "ertelendi");
   const oynanan = maclar.filter((m) => m.durum === "oynandi" || m.durum === "hukmen");
+
+  const toplamSayfa = Math.max(1, Math.ceil(oynanan.length / SONUC_SAYFA_BOYU));
+  const su = sayfaNo(sayfa, toplamSayfa);
+  const ilkSayfa = su === 1;
+  const dilim = oynanan.slice((su - 1) * SONUC_SAYFA_BOYU, su * SONUC_SAYFA_BOYU);
 
   return (
     <div className="mx-auto w-full max-w-[1180px] px-5 py-12 md:py-16">
@@ -50,13 +85,61 @@ export default async function FiksturSayfasi() {
         </div>
       ) : (
         <div className="mt-9 grid gap-10">
-          {oynanacak.length > 0 && (
+          {/* Oynanacak maçlar yalnız ilk sayfada; ziyaretçi çoğunlukla
+              "bu hafta kim oynuyor" diye geliyor, o bilgi bölünmemeli. */}
+          {ilkSayfa && oynanacak.length > 0 && (
             <Bolum baslik="Oynanacak maçlar" maclar={oynanacak} />
           )}
-          {oynanan.length > 0 && <Bolum baslik="Sonuçlar" maclar={oynanan} />}
+
+          {dilim.length > 0 && (
+            <Bolum
+              baslik={ilkSayfa ? "Sonuçlar" : `Sonuçlar — sayfa ${su}`}
+              maclar={dilim}
+            />
+          )}
+
+          {toplamSayfa > 1 && (
+            <Sayfalama su={su} toplam={toplamSayfa} adet={oynanan.length} />
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Sonuç sayfaları arası gezinme.
+ *
+ * Düğmeler yerine `<Link>` kullanılıyor: sunucuda üretildikleri için Google
+ * geçmiş sonuçları da tarayabiliyor, JavaScript kapalıyken de çalışıyorlar.
+ */
+function Sayfalama({ su, toplam, adet }: { su: number; toplam: number; adet: number }) {
+  const adres = (n: number) => (n === 1 ? "/fikstur" : `/fikstur?sayfa=${n}`);
+  const stil =
+    "rounded-sm border border-line bg-white px-4 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-brand hover:text-brand";
+
+  return (
+    <nav aria-label="Sonuç sayfaları" className="flex flex-wrap items-center gap-3">
+      {su > 1 ? (
+        <Link href={adres(su - 1)} rel="prev" className={stil}>
+          ← Daha yeni
+        </Link>
+      ) : (
+        <span className={`${stil} cursor-default opacity-40`}>← Daha yeni</span>
+      )}
+
+      <p className="font-[family-name:var(--font-data)] text-sm tracking-wide text-muted">
+        Sayfa {su} / {toplam} · {adet} sonuç
+      </p>
+
+      {su < toplam ? (
+        <Link href={adres(su + 1)} rel="next" className={stil}>
+          Daha eski →
+        </Link>
+      ) : (
+        <span className={`${stil} cursor-default opacity-40`}>Daha eski →</span>
+      )}
+    </nav>
   );
 }
 

@@ -47,6 +47,8 @@ export type GorselKaydi = {
   baslik: string | null;
   sira: number;
   yayinda: boolean;
+  /** Yüklenme zamanı — sabit görsel listesinde gösteriliyor. */
+  olusturuldu: string;
 };
 
 function db() {
@@ -382,6 +384,43 @@ export async function bekleyenIsler(): Promise<BekleyenIsler> {
   ]);
 
   return { skorsuzMac, fotograf, talep };
+}
+
+/**
+ * Bir kaydı listede bir sıra yukarı (-1) veya aşağı (+1) taşır.
+ *
+ * Eskiden `sira` değeri doğrudan ±1 yapılıyordu. Bütün kayıtlar şema
+ * varsayılanıyla `sira = 0` başladığı için bu, kaydı komşusuyla takas etmek
+ * yerine listenin en başına (-1) ya da en sonuna (+1) fırlatıyordu; iki kayıt
+ * aynı sırada kalınca da liste her okunuşta farklı dizilebiliyordu.
+ *
+ * Artık liste görünen sırasına göre 0, 1, 2… diye yeniden numaralanıyor ve
+ * kayıt komşusuyla yer değiştiriyor. Yalnız değeri gerçekten değişen satırlar
+ * yazılıyor.
+ *
+ * `liste` ekranda göründüğü sırada olmalı; `guncelle` ilgili tablonun kendi
+ * güncelleme fonksiyonu (`sosyalGuncelle`, `gorselGuncelle` …).
+ */
+export async function siradaTasi(
+  liste: { id: string; sira: number }[],
+  id: string,
+  yon: -1 | 1,
+  guncelle: (id: string, degisiklik: { sira: number }) => Promise<void>,
+) {
+  const su = liste.findIndex((k) => k.id === id);
+  if (su < 0) return;
+
+  const hedef = su + yon;
+  if (hedef < 0 || hedef >= liste.length) return; // Zaten uçta, yapacak bir şey yok.
+
+  const yeni = [...liste];
+  [yeni[su], yeni[hedef]] = [yeni[hedef], yeni[su]];
+
+  const yazilacak = yeni
+    .map((k, i) => ({ k, i }))
+    .filter(({ k, i }) => k.sira !== i);
+
+  await Promise.all(yazilacak.map(({ k, i }) => guncelle(k.id, { sira: i })));
 }
 
 // ------------------------------------------------------- sosyal içerikler

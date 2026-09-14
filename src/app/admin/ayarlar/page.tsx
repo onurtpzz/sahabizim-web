@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel } from "@/components/admin/ui";
+import { SabitGorseller } from "@/components/admin/sabit-gorseller";
 import { useKirli } from "@/lib/kirli";
 import { ayarKaydet, ayarlariGetir } from "@/lib/admin-veri";
 
@@ -132,9 +133,10 @@ export default function AdminAyarlar() {
   }
 
   return (
-    <form onSubmit={kaydet} className="grid gap-6 pb-24">
+    <div className="grid gap-6 pb-24">
       <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
+      <form onSubmit={kaydet} className="grid gap-6">
       {tumGruplar.map((grup) => {
         const satirlar = grup.anahtarlar
           .map((k) => ayarlar.find((a) => a.anahtar === k))
@@ -177,7 +179,7 @@ export default function AdminAyarlar() {
         );
       })}
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-white/12 bg-ink/95 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/12 bg-ink/95 backdrop-blur">
         <div className="mx-auto flex w-full max-w-[1180px] items-center gap-4 px-5 py-3">
           <p className="text-sm text-muted-dark">
             {degisenSayisi > 0 ? `${degisenSayisi} alan değişti` : "Değişiklik yok"}
@@ -189,6 +191,14 @@ export default function AdminAyarlar() {
           </div>
         </div>
       </div>
-    </form>
+      </form>
+
+      {/*
+        Sabit site görselleri metin ayarlarının en altında. Formun DIŞINDA:
+        içinde olsaydı dosya seçme düğmeleri formu göndermeye karışabilirdi,
+        ayrıca yüklemeler anında kaydediliyor — "Kaydet" düğmesini beklemiyor.
+      */}
+      <SabitGorseller bildir={setMesaj} />
+    </div>
   );
 }

@@ -211,7 +211,7 @@ export default function AdminOzet() {
           {[
             { href: "/admin/maclar", l: "Skor gir" },
             { href: "/admin/takimlar", l: "Takım ekle" },
-            { href: "/admin/gorseller", l: "Görsel yükle" },
+            { href: "/admin/fotograflar", l: "Galeriye görsel ekle" },
             { href: "/admin/duyurular", l: "Duyuru ekle" },
             { href: "/admin/puan", l: "Puan düzelt" },
             { href: "/admin/fotograflar", l: "Fotoğraf onayla" },

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel, Uyari } from "@/components/admin/ui";
 import {
   sosyalEkle,
+  siradaTasi,
   sosyalGetir,
   sosyalGuncelle,
   sosyalSil,
@@ -67,8 +68,12 @@ export default function AdminSosyal() {
   }
 
   async function siraDegistir(k: SosyalKayit, yon: -1 | 1) {
-    await sosyalGuncelle(k.id, { sira: k.sira + yon });
-    await yenile();
+    try {
+      await siradaTasi(kayitlar, k.id, yon, (id, d) => sosyalGuncelle(id, d));
+      await yenile();
+    } catch (e) {
+      setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Sıra değiştirilemedi." });
+    }
   }
 
   if (yukleniyor) return <Iskelet satir={2} />;
@@ -130,7 +135,7 @@ export default function AdminSosyal() {
           </p>
         ) : (
           <ul className="divide-y divide-white/8">
-            {kayitlar.map((k) => {
+            {kayitlar.map((k, sira) => {
               const id = k.tur === "youtube" ? youtubeId(k.url) : null;
               return (
                 <li key={k.id} className="grid gap-3 p-4 md:grid-cols-[128px_1fr_auto] md:items-center">
@@ -168,7 +173,8 @@ export default function AdminSosyal() {
                       type="button"
                       onClick={() => siraDegistir(k, -1)}
                       aria-label="Yukarı taşı"
-                      className="rounded-sm border border-white/20 px-3 py-1.5 text-xs text-[#cfe0d5] hover:border-brand-lite hover:text-white"
+                      disabled={sira === 0}
+                      className="rounded-sm border border-white/20 px-3 py-1.5 text-xs text-[#cfe0d5] hover:border-brand-lite hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/20"
                     >
                       ↑
                     </button>
@@ -176,7 +182,8 @@ export default function AdminSosyal() {
                       type="button"
                       onClick={() => siraDegistir(k, 1)}
                       aria-label="Aşağı taşı"
-                      className="rounded-sm border border-white/20 px-3 py-1.5 text-xs text-[#cfe0d5] hover:border-brand-lite hover:text-white"
+                      disabled={sira === kayitlar.length - 1}
+                      className="rounded-sm border border-white/20 px-3 py-1.5 text-xs text-[#cfe0d5] hover:border-brand-lite hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/20"
                     >
                       ↓
                     </button>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bildirim, Dugme, Iskelet, Panel, Uyari } from "@/components/admin/ui";
+import { Bildirim, BosDurum, Dugme, Iskelet, Panel, Uyari } from "@/components/admin/ui";
+import { GaleriYonetimi } from "@/components/admin/galeri-yonetimi";
 import {
   fotograflariGetir,
   fotografDurumu,
@@ -22,7 +23,14 @@ const SEKMELER = [
 /** Önizleme adresi durumu: adres, "yok" (dosya bulunamadı) ya da yükleniyor. */
 type Onizleme = string | "yok";
 
+/** Üst seviye ayrım: ziyaretçilerden gelenler / sitenin kendi galerisi. */
+const BOLUMLER = [
+  { k: "takim", l: "Takım fotoğrafları" },
+  { k: "galeri", l: "Site galerisi" },
+] as const;
+
 export default function AdminFotograflar() {
+  const [bolum, setBolum] = useState<(typeof BOLUMLER)[number]["k"]>("takim");
   const [sekme, setSekme] = useState<(typeof SEKMELER)[number]["k"]>("bekliyor");
   const [kayitlar, setKayitlar] = useState<TakimFotografi[]>([]);
   const [takimlar, setTakimlar] = useState<Takim[]>([]);
@@ -156,6 +164,32 @@ export default function AdminFotograflar() {
     <div className="grid gap-6">
       <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
+      <div className="flex flex-wrap gap-1.5 border-b border-white/12 pb-3">
+        {BOLUMLER.map((b) => (
+          <button
+            key={b.k}
+            type="button"
+            onClick={() => setBolum(b.k)}
+            className={`rounded-sm px-4 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider uppercase transition ${
+              bolum === b.k
+                ? "bg-brand text-white"
+                : "text-muted-dark hover:text-white"
+            }`}
+          >
+            {b.l}
+            {b.k === "takim" && bekleyenSayisi > 0 && (
+              <span className="ml-1.5 inline-grid min-w-[19px] place-items-center rounded-full bg-gold px-1.5 py-px text-[11px] font-bold text-ink tabular-nums">
+                {bekleyenSayisi}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {bolum === "galeri" && <GaleriYonetimi bildir={setMesaj} />}
+
+      {bolum === "takim" && (
+      <>
       {bekleyenSayisi >= 100 && (
         <Uyari tur="hata">
           Onay kuyruğunda {bekleyenSayisi} fotoğraf var. 120'ye ulaşıldığında yeni
@@ -182,9 +216,17 @@ export default function AdminFotograflar() {
 
       <Panel baslik={SEKMELER.find((s) => s.k === sekme)!.l} sag={`${gorunen.length} fotoğraf`}>
         {gorunen.length === 0 ? (
-          <p className="p-5 text-sm text-muted-dark">
-            {sekme === "bekliyor" ? "Onay bekleyen fotoğraf yok." : "Bu listede kayıt yok."}
-          </p>
+          <BosDurum
+            simge={sekme === "bekliyor" ? "✓" : "—"}
+            baslik={
+              sekme === "bekliyor" ? "Onay kuyruğu boş" : "Bu listede kayıt yok"
+            }
+            metin={
+              sekme === "bekliyor"
+                ? "Takım sayfalarından yeni fotoğraf geldiğinde burada birikir."
+                : undefined
+            }
+          />
         ) : (
           <ul className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
             {gorunen.map((f) => {
@@ -275,6 +317,8 @@ export default function AdminFotograflar() {
         Reddettiğin kayıt listede kalır; dosyayla birlikte tamamen kurtulmak için{" "}
         <strong>Sil</strong> kullan.
       </Uyari>
+      </>
+      )}
     </div>
   );
 }

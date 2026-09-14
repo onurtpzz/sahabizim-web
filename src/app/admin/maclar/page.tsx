@@ -10,12 +10,11 @@ import {
   isoSaati,
   isoTarihi,
   macEkle,
-  macZamaniKaydet,
   tarihiIsoYap,
   macSil,
   maclariGetir,
   saatBelirsizMi,
-  skorKaydet,
+  macKaydet,
   takimlariGetir,
   type Mac,
   type Sezon,
@@ -147,26 +146,40 @@ function MacSatiri({
   const degisti = skorDegisti || zamanDegisti;
 
   async function kaydet() {
+    // Tek skor girilmesi engelleniyor: eskiden (3, boş) kaydediliyor, maç
+    // "oynanacak" kalıyordu. Panel "kaydedildi" diyor, maç puana girmiyor ve
+    // yarım girildiği hiçbir yerde görünmüyordu.
+    if (skorDegisti && (ev === "") !== (dep === "")) {
+      return setMesaj({
+        tur: "hata",
+        metin: "İki takımın da skorunu gir — biri boş bırakılamaz.",
+      });
+    }
+
     setBekle(true);
     try {
-      if (zamanDegisti) {
-        await macZamaniKaydet(mac.id, tarihiIsoYap(tarih, saat));
-      }
-      if (skorDegisti) {
-        await skorKaydet(
-          mac.id,
-          ev === "" ? null : Number(ev),
-          dep === "" ? null : Number(dep),
-        );
-      }
+      // Tarih ve skor tek yazmada gidiyor: ayrı ayrı gönderilirken ikincisi
+      // patlarsa ekran "kaydedilemedi" diyor ama tarih çoktan yazılmış oluyordu.
+      await macKaydet(
+        mac,
+        skorDegisti
+          ? {
+              ...(zamanDegisti ? { oynanma: tarihiIsoYap(tarih, saat) } : {}),
+              ev_skor: ev === "" ? null : Number(ev),
+              dep_skor: dep === "" ? null : Number(dep),
+            }
+          : { oynanma: tarihiIsoYap(tarih, saat) },
+      );
       setMesaj({
         tur: "basari",
         metin: skorDegisti ? "Maç kaydedildi." : "Tarih ve saat güncellendi.",
       });
-      await yenile();
     } catch (e) {
       setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Kaydedilemedi." });
     }
+    // Başarıda da hatada da ekranı veritabanıyla eşitliyoruz; yarım kalmış bir
+    // yazmadan sonra kutuların eski değerleri göstermesi yanıltıcıydı.
+    await yenile();
     setBekle(false);
   }
 
@@ -295,6 +308,9 @@ function YeniMac({
     e.preventDefault();
     if (!evId || !depId) return hataVer("İki takımı da seç.");
     if (evId === depId) return hataVer("Bir takım kendisiyle oynayamaz.");
+    if ((ev === "") !== (dep === "")) {
+      return hataVer("İki takımın da skorunu gir, ya da ikisini de boş bırak.");
+    }
     setBekle(true);
     try {
       await macEkle({

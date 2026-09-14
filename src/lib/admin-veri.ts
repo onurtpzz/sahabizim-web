@@ -68,12 +68,6 @@ export {
   tarihiIsoYap,
 } from "@/lib/zaman";
 
-/** Maçın tarih ve saatini günceller (skora dokunmaz). */
-export async function macZamaniKaydet(id: string, oynanma: string | null) {
-  const { error } = await db().from("maclar").update({ oynanma }).eq("id", id);
-  if (error) throw error;
-}
-
 /** Türkçe karakterleri sadeleştirip URL'de kullanılabilir hale getirir. */
 export function slugla(ad: string) {
   const harita: Record<string, string> = {
@@ -160,6 +154,12 @@ export async function macEkle(m: {
   dep_skor: number | null;
   saha: string | null;
 }) {
+  // Tek skor girilmesi burada da engelleniyor (bkz. macKaydet): yarım skorlu
+  // kayıt "oynanacak" olarak açılıyor, puana girmiyor ve fark edilmiyordu.
+  if ((m.ev_skor === null) !== (m.dep_skor === null)) {
+    throw new Error("İki takımın da skorunu gir — biri boş bırakılamaz.");
+  }
+
   const oynandi = m.ev_skor !== null && m.dep_skor !== null;
   const { error } = await db()
     .from("maclar")
@@ -167,14 +167,58 @@ export async function macEkle(m: {
   if (error) throw error;
 }
 
-export async function skorKaydet(id: string, ev: number | null, dep: number | null) {
-  const oynandi = ev !== null && dep !== null;
-  const { error } = await db()
-    .from("maclar")
-    .update({ ev_skor: ev, dep_skor: dep, durum: oynandi ? "oynandi" : "oynanacak" })
-    .eq("id", id);
-  if (error) throw error;
+/**
+ * Skor girilince maçın yeni durumu ne olmalı?
+ *
+ * Eskiden düz `oynandi`/`oynanacak` hesaplanıyordu ve bu, elle işaretlenmiş
+ * `hukmen` / `ertelendi` bilgisini siliyordu: hükmen bir maçın skorunu
+ * düzeltince maç sıradan bir "oynandı" oluyor, hükmen kaydı geri getirilemiyordu.
+ */
+function yeniDurum(mevcut: Mac["durum"], oynandi: boolean): Mac["durum"] {
+  if (oynandi) return mevcut === "hukmen" ? "hukmen" : "oynandi";
+  return mevcut === "ertelendi" ? "ertelendi" : "oynanacak";
 }
+
+/**
+ * Maçın tarihini ve skorunu TEK yazmada günceller.
+ *
+ * Neden tek: eskiden tarih ve skor iki ayrı istekle gidiyordu. İkincisi
+ * patlarsa ekranda "Kaydedilemedi." yazıyor ama tarih çoktan yazılmış oluyordu;
+ * kullanıcı hiçbir şeyin değişmediğini sanıyordu.
+ *
+ * `.select("id")`: RLS bir UPDATE'i engellediğinde ya da kayıt başka bir
+ * sekmede silinmişse PostgREST hata döndürmez, sadece 0 satır etkiler. Dönen
+ * dizi boşsa bunu hata sayıyoruz ki panel sahte "başarılı" göstermesin.
+ */
+export async function macKaydet(
+  mac: Pick<Mac, "id" | "durum">,
+  degisiklik: { oynanma?: string | null; ev_skor?: number | null; dep_skor?: number | null },
+) {
+  const skorVar = "ev_skor" in degisiklik || "dep_skor" in degisiklik;
+  const ev = skorVar ? (degisiklik.ev_skor ?? null) : null;
+  const dep = skorVar ? (degisiklik.dep_skor ?? null) : null;
+
+  if (skorVar && (ev === null) !== (dep === null)) {
+    throw new Error("İki takımın da skorunu gir — biri boş bırakılamaz.");
+  }
+
+  const yama: Record<string, unknown> = { ...degisiklik };
+  if (skorVar) yama.durum = yeniDurum(mac.durum, ev !== null && dep !== null);
+
+  const { data, error } = await db()
+    .from("maclar")
+    .update(yama)
+    .eq("id", mac.id)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) {
+    throw new Error(
+      "Kayıt güncellenemedi. Maç başka bir yerden silinmiş olabilir; sayfayı yenile.",
+    );
+  }
+}
+
 
 export async function macSil(id: string) {
   const { error } = await db().from("maclar").delete().eq("id", id);
@@ -469,14 +513,48 @@ export async function puanDurumuGetir() {
   }[];
 }
 
+/**
+ * Arşivleme için tam tablo: aktif takımlara ek olarak, pasife alınmış ama bu
+ * sezon maç oynamış takımları da içerir (`puan_durumu_tam` görünümü).
+ *
+ * Neden ayrı: sitedeki `puan_durumu` yalnız aktif takımları gösteriyor. Sezon
+ * ortasında ligden ayrılan bir takım oradan düşüyor, ama oynadığı maçlar
+ * rakiplerinin istatistiklerinde duruyor. Arşiv o görünümden beslenseydi takım
+ * tarihe hiç geçmezdi ve sezon kapandıktan sonra geri getirilemezdi.
+ */
+export async function puanDurumuTamGetir() {
+  const { data, error } = await db().from("puan_durumu_tam").select("*").order("sira");
+  if (error) throw error;
+  return (data ?? []) as {
+    sira: number;
+    id: string;
+    ad: string;
+    slug: string;
+    aktif: boolean;
+    o: number;
+    g: number;
+    b: number;
+    m: number;
+    a: number;
+    y: number;
+    av: number;
+    p: number;
+  }[];
+}
+
 // --------------------------------------------------------- sezon arşivi
 /**
  * O anki puan durumunun fotoğrafını `sezon_arsivi` tablosuna kopyalar ve
- * şampiyonu sezona işler. Sezon kapanmadan ÖNCE çağrılmalı — `puan_durumu`
- * görünümü yalnız aktif sezonu hesaplar.
+ * şampiyonu sezona işler. Sezon kapanmadan ÖNCE çağrılmalı — görünümler
+ * yalnız aktif sezonu hesaplar, sezon kapandıktan sonra o tablo bir daha
+ * üretilemez.
+ *
+ * Kaynak `puan_durumu_tam`: sezon ortasında pasife alınan takımlar da tarihe
+ * geçsin diye. Onların maçları zaten rakiplerinin rakamlarında sayılıyor;
+ * arşivde karşılığı olmasaydı tablo kendi içinde tutmazdı.
  */
 export async function sezonuArsivle(sezonId: string) {
-  const tablo = await puanDurumuGetir();
+  const tablo = await puanDurumuTamGetir();
   if (!tablo.length) throw new Error("Puan durumu boş, arşivlenecek bir şey yok.");
 
   const { data: takimlar } = await db().from("takimlar").select("id, logo_url");
@@ -492,9 +570,12 @@ export async function sezonuArsivle(sezonId: string) {
     o: r.o, g: r.g, b: r.b, m: r.m, a: r.a, y: r.y, av: r.av, p: r.p,
   }));
 
+  // Çakışma anahtarı takımın kimliği — slug değil. Slug takım adından
+  // üretiliyor; ad düzeltilirse (yazım hatası vb.) slug değişiyor ve ikinci
+  // arşivleme eski satırı tanımayıp aynı takımı tekrar yazıyordu.
   const { error } = await db()
     .from("sezon_arsivi")
-    .upsert(satirlar, { onConflict: "sezon_id,slug" });
+    .upsert(satirlar, { onConflict: "sezon_id,takim_id" });
   if (error) throw error;
 
   const sampiyon = tablo.find((r) => r.sira === 1);

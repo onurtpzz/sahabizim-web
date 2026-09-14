@@ -76,6 +76,74 @@ export function Dugme({
   );
 }
 
+/**
+ * Kaydetme/hata bildirimi — sayfanın SAĞ ALTINDA belirir, birkaç saniyede
+ * kendiliğinden kaybolur.
+ *
+ * Neden buradan: mesajlar eskiden sayfanın en üstünde çıkıyordu. Uzun maç
+ * listesinin ortasında skor kaydedince mesaj ekranın dışında kalıyor, kaydın
+ * gidip gitmediği anlaşılmıyordu.
+ */
+export function Bildirim({
+  mesaj,
+  kapat,
+  saniye = 4,
+}: {
+  mesaj: { tur: "basari" | "hata"; metin: string } | null;
+  kapat: () => void;
+  saniye?: number;
+}) {
+  useEffect(() => {
+    if (!mesaj) return;
+    // Hatalar biraz daha uzun kalsın — okunacak bir sebep içeriyorlar.
+    const sure = (mesaj.tur === "hata" ? saniye * 2 : saniye) * 1000;
+    const zaman = setTimeout(kapat, sure);
+    return () => clearTimeout(zaman);
+  }, [mesaj, kapat, saniye]);
+
+  if (!mesaj) return null;
+
+  const stil =
+    mesaj.tur === "hata"
+      ? "border-lose/60 bg-[#2a0f0c] text-[#ffd7d2]"
+      : "border-brand/60 bg-[#06240f] text-[#d7f5df]";
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center sm:inset-x-auto sm:right-6 sm:bottom-6 sm:justify-end"
+    >
+      <div
+        className={`pointer-events-auto flex w-full max-w-[420px] items-start gap-3 rounded border px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.45)] ${stil}`}
+      >
+        <span aria-hidden className="mt-0.5 text-base">
+          {mesaj.tur === "hata" ? "⚠" : "✓"}
+        </span>
+        <p className="flex-1 text-sm">{mesaj.metin}</p>
+        <button
+          type="button"
+          onClick={kapat}
+          aria-label="Bildirimi kapat"
+          className="-mr-1 -mt-1 px-1.5 text-lg leading-none opacity-60 hover:opacity-100"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Menüdeki bekleyen iş sayısı. 0 ise hiç çıkmaz. */
+export function Rakam({ sayi }: { sayi: number }) {
+  if (!sayi) return null;
+  return (
+    <span className="ml-1.5 inline-grid min-w-[19px] place-items-center rounded-full bg-gold px-1.5 py-px text-[11px] font-bold text-ink tabular-nums">
+      {sayi > 99 ? "99+" : sayi}
+    </span>
+  );
+}
+
 export function Rozet({ ad, renk }: { ad: string; renk: string }) {
   const parcalar = ad.split(" ").filter(Boolean);
   const harf = (

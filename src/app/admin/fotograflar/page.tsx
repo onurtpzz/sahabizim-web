@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Dugme, Panel, Uyari } from "@/components/admin/ui";
+import { Bildirim, Dugme, Panel, Uyari } from "@/components/admin/ui";
 import {
   fotograflariGetir,
   fotografDurumu,
@@ -154,7 +154,7 @@ export default function AdminFotograflar() {
 
   return (
     <div className="grid gap-6">
-      {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+      <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
       {bekleyenSayisi >= 100 && (
         <Uyari tur="hata">

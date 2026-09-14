@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alan, Dugme, Girdi, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
 import {
   aktifSezon,
   devirKaydet,
@@ -63,7 +63,7 @@ export default function AdminPuan() {
 
   return (
     <div className="grid gap-6">
-      {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+      <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
       <Uyari>
         <strong>Puan düzeltmesi</strong> ceza ve bonus içindir — sadece puanı değiştirir,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Dugme, Girdi, Panel, Secim, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
 import {
   ayarKaydet,
   ayarlariGetir,
@@ -91,7 +91,7 @@ export default function AdminGorseller() {
 
   return (
     <div className="grid gap-6">
-      {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+      <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
       <Panel baslik="Sitedeki sabit görseller">
         <ul className="divide-y divide-white/8">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Dugme, Girdi, Panel, Rozet, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Panel, Rozet, Uyari } from "@/components/admin/ui";
 import { rozet } from "@/lib/puan";
 import {
   dosyaYukle,
@@ -86,7 +86,7 @@ export default function AdminTakimlar() {
 
   return (
     <div className="grid gap-6">
-      {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+      <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
       <Panel
         baslik="Takımlar"

@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 import { Panel, Uyari } from "@/components/admin/ui";
 import {
   aktifSezon,
-  fotograflariGetir,
+  bekleyenIsler,
   maclariGetir,
   takimlariGetir,
-  talepleriGetir,
+  type BekleyenIsler,
 } from "@/lib/admin-veri";
 
 type SunucuDurumu =
@@ -71,9 +71,8 @@ export default function AdminOzet() {
     aktifTakim: number;
     oynanan: number;
     bekleyen: number;
-    talep: number;
-    foto: number;
   } | null>(null);
+  const [isler, setIsler] = useState<BekleyenIsler | null>(null);
   const [hata, setHata] = useState("");
   const [sunucu, setSunucu] = useState<SunucuDurumu | null>(null);
 
@@ -94,28 +93,18 @@ export default function AdminOzet() {
     (async () => {
       try {
         const sezon = await aktifSezon();
-        const takimlar = await takimlariGetir();
-        const maclar = sezon ? await maclariGetir(sezon.id) : [];
-        let talep = 0;
-        try {
-          talep = (await talepleriGetir()).filter((t) => !t.okundu).length;
-        } catch {
-          /* talepler henüz yoksa sorun değil */
-        }
-        let foto = 0;
-        try {
-          foto = (await fotograflariGetir("bekliyor")).length;
-        } catch {
-          /* fotoğraf tablosu henüz yoksa sorun değil */
-        }
+        const [takimlar, maclar, bekleyenler] = await Promise.all([
+          takimlariGetir(),
+          sezon ? maclariGetir(sezon.id) : Promise.resolve([]),
+          bekleyenIsler(),
+        ]);
+        setIsler(bekleyenler);
         setSayilar({
           sezon: sezon?.ad ?? "Aktif sezon yok",
           takim: takimlar.length,
           aktifTakim: takimlar.filter((t) => t.aktif).length,
           oynanan: maclar.filter((m) => m.durum === "oynandi" || m.durum === "hukmen").length,
           bekleyen: maclar.filter((m) => m.durum === "oynanacak").length,
-          talep,
-          foto,
         });
       } catch (e) {
         setHata(e instanceof Error ? e.message : "Veriler okunamadı.");
@@ -139,17 +128,72 @@ export default function AdminOzet() {
   const kutular = [
     { l: "Takım", v: `${sayilar.aktifTakim}/${sayilar.takim}`, alt: "aktif / toplam" },
     { l: "Oynanan maç", v: sayilar.oynanan, alt: "bu sezon" },
-    { l: "Bekleyen maç", v: sayilar.bekleyen, alt: "skor girilmemiş" },
-    { l: "Okunmamış talep", v: sayilar.talep, alt: "iletişim + katılım" },
-    { l: "Onay bekleyen foto", v: sayilar.foto, alt: "takım sayfalarından" },
+    { l: "Sıradaki maç", v: sayilar.bekleyen, alt: "henüz oynanmadı" },
   ];
+
+  // Sıra bilerek böyle: skor girmek günlük iş, diğerleri ara sıra.
+  const isListesi = [
+    {
+      sayi: isler?.skorsuzMac ?? 0,
+      href: "/admin/maclar",
+      metin: (n: number) => `${n} maçın skoru girilmemiş`,
+      alt: "Tarihi geçti, sonuç hâlâ boş",
+    },
+    {
+      sayi: isler?.fotograf ?? 0,
+      href: "/admin/fotograflar",
+      metin: (n: number) => `${n} fotoğraf onay bekliyor`,
+      alt: "Takım sayfalarından yüklendi",
+    },
+    {
+      sayi: isler?.talep ?? 0,
+      href: "/admin/talepler",
+      metin: (n: number) => `${n} talep okunmadı`,
+      alt: "İletişim ve katılım formu",
+    },
+  ].filter((i) => i.sayi > 0);
 
   return (
     <div className="grid gap-6">
       <BaglantiSeridi durum={sunucu} />
 
-      <Panel baslik="Aktif sezon" sag={sayilar.sezon}>
-        <dl className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-5">
+      <Panel baslik="Bugün ne var" sag={sayilar.sezon}>
+        {isListesi.length === 0 ? (
+          <p className="flex items-center gap-3 p-5 text-sm text-[#cfe0d5]">
+            <span aria-hidden className="text-lg text-brand-lite">
+              ✓
+            </span>
+            Bekleyen iş yok — skorlar girilmiş, onay kuyruğu boş.
+          </p>
+        ) : (
+          <ul className="divide-y divide-white/8">
+            {isListesi.map((i) => (
+              <li key={i.href}>
+                <Link
+                  href={i.href}
+                  className="flex items-center gap-4 px-4 py-4 transition hover:bg-white/5"
+                >
+                  <span className="display tabular grid h-12 w-12 flex-none place-items-center rounded-full bg-gold/15 text-2xl text-gold">
+                    {i.sayi}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-[family-name:var(--font-data)] text-lg font-bold">
+                      {i.metin(i.sayi)}
+                    </span>
+                    <span className="block text-sm text-muted-dark">{i.alt}</span>
+                  </span>
+                  <span aria-hidden className="ml-auto text-xl text-muted-dark">
+                    →
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel baslik="Sezon özeti" sag={sayilar.sezon}>
+        <dl className="grid grid-cols-3 gap-px bg-white/10">
           {kutular.map((k) => (
             <div key={k.l} className="bg-ink-3 p-5">
               <dd className="display tabular text-4xl">{k.v}</dd>

@@ -329,6 +329,61 @@ export async function yeniSezon(ad: string, takimlariTasi: boolean) {
   return (data ?? {}) as { sezon_id: string; arsivlenen: number; eski_sezon_id: string | null };
 }
 
+// --------------------------------------------------------- bekleyen işler
+/**
+ * Panelin "bugün ne var" sayıları. Menüdeki rozetler ve özet ekranı bunu
+ * kullanıyor, o yüzden ucuz olmak zorunda: `head: true` ile yalnız sayım
+ * dönüyor, tek satır veri çekilmiyor.
+ *
+ * Tablolardan biri henüz kurulmamışsa (SQL dosyası çalıştırılmamışsa) o
+ * kalem 0 sayılıyor — panelin tamamı bir sayaç yüzünden çökmesin.
+ */
+export type BekleyenIsler = {
+  /** Tarihi geçmiş ama skoru hâlâ girilmemiş maç. */
+  skorsuzMac: number;
+  /** Onay bekleyen ziyaretçi fotoğrafı. */
+  fotograf: number;
+  /** Okunmamış iletişim/katılım talebi. */
+  talep: number;
+};
+
+export async function bekleyenIsler(): Promise<BekleyenIsler> {
+  const sezon = await aktifSezon().catch(() => null);
+  const simdi = new Date().toISOString();
+
+  const sayim = async (calis: () => PromiseLike<{ count: number | null }>) => {
+    try {
+      return (await calis()).count ?? 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const [skorsuzMac, fotograf, talep] = await Promise.all([
+    sezon
+      ? sayim(() =>
+          db()
+            .from("maclar")
+            .select("id", { count: "exact", head: true })
+            .eq("sezon_id", sezon.id)
+            .eq("durum", "oynanacak")
+            .lt("oynanma", simdi),
+        )
+      : Promise.resolve(0),
+    sayim(() =>
+      db()
+        .from("takim_fotograflari")
+        .select("id", { count: "exact", head: true })
+        .eq("durum", "bekliyor"),
+    ),
+    sayim(() =>
+      db().from("talepler").select("id", { count: "exact", head: true }).eq("okundu", false),
+    ),
+  ]);
+
+  return { skorsuzMac, fotograf, talep };
+}
+
 // ------------------------------------------------------- sosyal içerikler
 export type SosyalKayit = {
   id: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alan, Dugme, Girdi, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
 import { MacGorseli } from "@/components/admin/mac-gorseli";
 import { SITE } from "@/lib/site";
 import {
@@ -27,6 +27,11 @@ export default function AdminMaclar() {
   const [maclar, setMaclar] = useState<Mac[]>([]);
   const [mesaj, setMesaj] = useState<{ tur: "basari" | "hata"; metin: string } | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [arama, setArama] = useState("");
+  const [sadeceSkorsuz, setSadeceSkorsuz] = useState(false);
+  // Sezon ilerledikçe liste binleri buluyor; hepsini birden basmak sayfayı
+  // yavaşlatıyordu. Kademeli gösteriyoruz.
+  const [gosterilen, setGosterilen] = useState(60);
 
   // Maç satırlarında hem ad hem logo lazım (logo paylaşım görseline giriyor).
   const bilgiler = useMemo(
@@ -67,12 +72,20 @@ export default function AdminMaclar() {
     );
   }
 
-  const bekleyen = maclar.filter((m) => m.durum === "oynanacak");
-  const oynanan = maclar.filter((m) => m.durum !== "oynanacak");
+  const anahtar = arama.trim().toLocaleLowerCase("tr");
+  const eslesir = (m: Mac) =>
+    !anahtar ||
+    (bilgiler[m.ev_id]?.ad ?? "").toLocaleLowerCase("tr").includes(anahtar) ||
+    (bilgiler[m.dep_id]?.ad ?? "").toLocaleLowerCase("tr").includes(anahtar);
+
+  const bekleyen = maclar.filter((m) => m.durum === "oynanacak" && eslesir(m));
+  const tumOynanan = maclar.filter((m) => m.durum !== "oynanacak" && eslesir(m));
+  const oynanan = tumOynanan.slice(0, gosterilen);
+  const suzuluyor = anahtar !== "" || sadeceSkorsuz;
 
   return (
     <div className="grid gap-6">
-      {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+      <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
       <YeniMac
         sezonId={sezon.id}
@@ -84,6 +97,30 @@ export default function AdminMaclar() {
         hataVer={(metin) => setMesaj({ tur: "hata", metin })}
       />
 
+      <Panel baslik="Listede ara">
+        <div className="grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+          <Girdi
+            type="search"
+            aria-label="Takım adına göre ara"
+            placeholder="Takım adı yaz — iki taraf da aranır"
+            value={arama}
+            onChange={(e) => {
+              setArama(e.target.value);
+              setGosterilen(60);
+            }}
+          />
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-[#cfe0d5]">
+            <input
+              type="checkbox"
+              checked={sadeceSkorsuz}
+              onChange={(e) => setSadeceSkorsuz(e.target.checked)}
+              className="h-4 w-4 accent-[#17A33A]"
+            />
+            Sadece skoru girilmemişler
+          </label>
+        </div>
+      </Panel>
+
       {bekleyen.length > 0 && (
         <Panel baslik="Skor bekleyen maçlar" sag={`${bekleyen.length} maç`}>
           <ul className="divide-y divide-white/8">
@@ -94,19 +131,49 @@ export default function AdminMaclar() {
         </Panel>
       )}
 
-      <Panel baslik="Girilen sonuçlar" sag={`${oynanan.length} maç`}>
+      {sadeceSkorsuz && bekleyen.length === 0 && (
+        <Panel baslik="Skor bekleyen maçlar">
+          <p className="p-5 text-sm text-muted-dark">
+            {anahtar
+              ? "Bu aramayla eşleşen, skoru girilmemiş maç yok."
+              : "Skoru girilmemiş maç yok — hepsi tamam."}
+          </p>
+        </Panel>
+      )}
+
+      {!sadeceSkorsuz && (
+      <Panel
+        baslik="Girilen sonuçlar"
+        sag={
+          tumOynanan.length > oynanan.length
+            ? `${oynanan.length} / ${tumOynanan.length} maç`
+            : `${tumOynanan.length} maç`
+        }
+      >
         {oynanan.length === 0 ? (
           <p className="p-5 text-sm text-muted-dark">
-            Henüz maç sonucu girilmedi. Yukarıdan ekleyebilirsin.
+            {suzuluyor
+              ? "Bu aramayla eşleşen sonuç yok."
+              : "Henüz maç sonucu girilmedi. Yukarıdan ekleyebilirsin."}
           </p>
         ) : (
-          <ul className="divide-y divide-white/8">
-            {oynanan.map((m) => (
-              <MacSatiri key={m.id} mac={m} bilgiler={bilgiler} yenile={yenile} setMesaj={setMesaj} />
-            ))}
-          </ul>
+          <>
+            <ul className="divide-y divide-white/8">
+              {oynanan.map((m) => (
+                <MacSatiri key={m.id} mac={m} bilgiler={bilgiler} yenile={yenile} setMesaj={setMesaj} />
+              ))}
+            </ul>
+            {tumOynanan.length > oynanan.length && (
+              <div className="border-t border-white/8 p-4">
+                <Dugme type="button" tur="ikincil" onClick={() => setGosterilen((n) => n + 60)}>
+                  Daha fazla göster ({tumOynanan.length - oynanan.length} maç kaldı)
+                </Dugme>
+              </div>
+            )}
+          </>
         )}
       </Panel>
+      )}
 
       <Uyari>
         Skoru kaydettiğin anda puan durumu, takım sayfaları ve anasayfa yeniden hesaplanır.

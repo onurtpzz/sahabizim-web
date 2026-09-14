@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Panel } from "@/components/admin/ui";
 import { ayarKaydet, ayarlariGetir } from "@/lib/admin-veri";
 
 type Ayar = { anahtar: string; deger: string | null; aciklama: string | null };
@@ -129,7 +129,7 @@ export default function AdminAyarlar() {
 
   return (
     <form onSubmit={kaydet} className="grid gap-6 pb-24">
-      {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+      <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
       {tumGruplar.map((grup) => {
         const satirlar = grup.anahtarlar

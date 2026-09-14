@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
 import {
   sosyalEkle,
   sosyalGetir,
@@ -77,7 +77,7 @@ export default function AdminSosyal() {
 
   return (
     <div className="grid gap-6">
-      {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+      <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
       <Panel baslik="İçerik ekle" sag="Anasayfada en fazla 6 içerik gösterilir">
         <form onSubmit={ekle} className="grid gap-4 p-4">

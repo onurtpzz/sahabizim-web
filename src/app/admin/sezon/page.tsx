@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
 import { sezonlariGetir, sezonuArsivle, yeniSezon, type Sezon } from "@/lib/admin-veri";
 
 export default function AdminSezon() {
@@ -52,7 +52,7 @@ export default function AdminSezon() {
 
   return (
     <div className="grid gap-6">
-      {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+      <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
       <Panel baslik="Sezonlar" sag={aktif ? `Aktif: ${aktif.ad}` : "Aktif sezon yok"}>
         <ul className="divide-y divide-white/8">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Dugme, Girdi, Panel, Secim, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Panel, Secim, Uyari } from "@/components/admin/ui";
 import {
   bugun,
   duyuruEkle,
@@ -43,7 +43,7 @@ export default function AdminDuyurular() {
 
   return (
     <div className="grid gap-6">
-      {mesaj && <Uyari tur={mesaj.tur}>{mesaj.metin}</Uyari>}
+      <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
       <YeniKayit
         kaydedildi={async (metin) => {

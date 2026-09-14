@@ -3,19 +3,22 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Rakam } from "@/components/admin/ui";
+import { bekleyenIsler, type BekleyenIsler } from "@/lib/admin-veri";
 import { supabase, supabaseHazir } from "@/lib/supabase";
 
-const MENU = [
+/** `rozet`: menü etiketinin yanında sayı gösterilecekse hangi kalem. */
+const MENU: { href: string; label: string; rozet?: keyof BekleyenIsler }[] = [
   { href: "/admin", label: "Özet" },
-  { href: "/admin/maclar", label: "Maç & Skor" },
+  { href: "/admin/maclar", label: "Maç & Skor", rozet: "skorsuzMac" },
   { href: "/admin/takimlar", label: "Takımlar" },
   { href: "/admin/puan", label: "Puan Düzeltme" },
   { href: "/admin/duyurular", label: "Duyurular" },
-  { href: "/admin/fotograflar", label: "Fotoğraflar" },
+  { href: "/admin/fotograflar", label: "Fotoğraflar", rozet: "fotograf" },
   { href: "/admin/gorseller", label: "Görseller" },
   { href: "/admin/sosyal", label: "Sosyal" },
   { href: "/admin/sezon", label: "Sezon" },
-  { href: "/admin/talepler", label: "Talepler" },
+  { href: "/admin/talepler", label: "Talepler", rozet: "talep" },
   { href: "/admin/ayarlar", label: "Ayarlar" },
 ];
 
@@ -25,6 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const girisSayfasi = yol === "/admin/giris";
   const [durum, setDurum] = useState<"bekliyor" | "girisli" | "girissiz">("bekliyor");
   const [eposta, setEposta] = useState<string>("");
+  const [isler, setIsler] = useState<BekleyenIsler | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -42,6 +46,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (durum === "girissiz" && !girisSayfasi) router.replace("/admin/giris");
   }, [durum, girisSayfasi, router]);
+
+  /**
+   * Bekleyen iş sayıları. `yol` bağımlılıkta: sayfa değiştikçe tazeleniyor,
+   * böylece fotoğrafı onayladıktan sonra rozet kendiliğinden düşüyor.
+   * Sekmeye geri dönüldüğünde de yeniden okunuyor.
+   */
+  useEffect(() => {
+    if (durum !== "girisli") return;
+    let iptal = false;
+    async function oku() {
+      try {
+        const i = await bekleyenIsler();
+        if (!iptal) setIsler(i);
+      } catch {
+        /* rozet ikincil bilgi — okunamazsa panel yine de çalışsın */
+      }
+    }
+    oku();
+    window.addEventListener("focus", oku);
+    return () => {
+      iptal = true;
+      window.removeEventListener("focus", oku);
+    };
+  }, [durum, yol]);
 
   if (!supabaseHazir) {
     return (
@@ -80,6 +108,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 }`}
               >
                 {m.label}
+                {m.rozet && <Rakam sayi={isler?.[m.rozet] ?? 0} />}
               </Link>
             );
           })}

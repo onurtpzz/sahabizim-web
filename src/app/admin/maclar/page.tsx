@@ -7,10 +7,14 @@ import { SITE } from "@/lib/site";
 import {
   aktifSezon,
   bugun,
+  isoSaati,
+  isoTarihi,
   macEkle,
+  macZamaniKaydet,
   tarihiIsoYap,
   macSil,
   maclariGetir,
+  saatBelirsizMi,
   skorKaydet,
   takimlariGetir,
   type Mac,
@@ -128,18 +132,37 @@ function MacSatiri({
   const [dep, setDep] = useState(mac.dep_skor?.toString() ?? "");
   const [bekle, setBekle] = useState(false);
   const [gorsel, setGorsel] = useState(false);
-  const degisti =
+
+  // Tarih ve saat de buradan düzenlenebiliyor: saat alanı sonradan
+  // eklendiği için eski maçlarda saat yer tutucu (öğlen) olarak duruyor,
+  // duyuru görseli paylaşmadan önce buradan düzeltiliyor.
+  const ilkTarih = isoTarihi(mac.oynanma);
+  const ilkSaat = saatBelirsizMi(mac.oynanma) ? "" : isoSaati(mac.oynanma);
+  const [tarih, setTarih] = useState(ilkTarih);
+  const [saat, setSaat] = useState(ilkSaat);
+
+  const skorDegisti =
     ev !== (mac.ev_skor?.toString() ?? "") || dep !== (mac.dep_skor?.toString() ?? "");
+  const zamanDegisti = tarih !== ilkTarih || saat !== ilkSaat;
+  const degisti = skorDegisti || zamanDegisti;
 
   async function kaydet() {
     setBekle(true);
     try {
-      await skorKaydet(
-        mac.id,
-        ev === "" ? null : Number(ev),
-        dep === "" ? null : Number(dep),
-      );
-      setMesaj({ tur: "basari", metin: "Skor kaydedildi." });
+      if (zamanDegisti) {
+        await macZamaniKaydet(mac.id, tarihiIsoYap(tarih, saat));
+      }
+      if (skorDegisti) {
+        await skorKaydet(
+          mac.id,
+          ev === "" ? null : Number(ev),
+          dep === "" ? null : Number(dep),
+        );
+      }
+      setMesaj({
+        tur: "basari",
+        metin: skorDegisti ? "Maç kaydedildi." : "Tarih ve saat güncellendi.",
+      });
       await yenile();
     } catch (e) {
       setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Kaydedilemedi." });
@@ -159,16 +182,23 @@ function MacSatiri({
   }
 
   return (
-    <li className="grid gap-3 p-4 md:grid-cols-[110px_1fr_auto] md:items-center">
-      <p className="font-[family-name:var(--font-data)] text-xs uppercase tracking-[0.12em] text-muted-dark">
-        {mac.oynanma
-          ? new Date(mac.oynanma).toLocaleDateString("tr-TR", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : "Tarih yok"}
-      </p>
+    <li className="grid gap-3 p-4 md:grid-cols-[172px_1fr_auto] md:items-center">
+      <div className="grid grid-cols-[1fr_92px] gap-2">
+        <Girdi
+          aria-label="Maç tarihi"
+          type="date"
+          value={tarih}
+          onChange={(e) => setTarih(e.target.value)}
+          className="text-xs"
+        />
+        <Girdi
+          aria-label="Maç saati"
+          type="time"
+          value={saat}
+          onChange={(e) => setSaat(e.target.value)}
+          className="text-xs"
+        />
+      </div>
 
       {/* Mobilde her takım kendi skorunun yanında; masaüstünde klasik karşılaşma dizilimi */}
       <div className="grid grid-cols-[1fr_60px] items-center gap-2 md:grid-cols-[1fr_56px_16px_56px_1fr]">
@@ -199,17 +229,16 @@ function MacSatiri({
         <Dugme type="button" onClick={kaydet} disabled={!degisti || bekle}>
           Kaydet
         </Dugme>
-        {mac.ev_skor !== null && mac.dep_skor !== null && (
-          <Dugme type="button" tur="ikincil" onClick={() => setGorsel(true)}>
-            Görsel
-          </Dugme>
-        )}
+        {/* Skor girilmemiş maçta duyuru, girilmişte sonuç görseli çıkar. */}
+        <Dugme type="button" tur="ikincil" onClick={() => setGorsel(true)}>
+          Görsel
+        </Dugme>
         <Dugme type="button" tur="tehlike" onClick={sil}>
           Sil
         </Dugme>
       </div>
 
-      {gorsel && mac.ev_skor !== null && mac.dep_skor !== null && (
+      {gorsel && (
         <MacGorseli
           kapat={() => setGorsel(false)}
           mac={{
@@ -220,6 +249,7 @@ function MacSatiri({
             evSkor: mac.ev_skor,
             depSkor: mac.dep_skor,
             tarih: mac.oynanma,
+            saatBelirsiz: saatBelirsizMi(mac.oynanma),
             sezon: SITE.sezon,
             hukmen: mac.durum === "hukmen",
           }}
@@ -244,6 +274,7 @@ function YeniMac({
   // tarihi gelir. Panel gece boyunca açık kalırsa sekmeye dönüldüğünde tazelenir —
   // ama sen tarihi elle değiştirdiysen dokunulmaz.
   const [tarih, setTarih] = useState("");
+  const [saat, setSaat] = useState("");
   const [elleSecildi, setElleSecildi] = useState(false);
   const [evId, setEvId] = useState("");
   const [depId, setDepId] = useState("");
@@ -269,7 +300,7 @@ function YeniMac({
       await macEkle({
         sezon_id: sezonId,
         hafta: null,
-        oynanma: tarihiIsoYap(tarih),
+        oynanma: tarihiIsoYap(tarih, saat),
         ev_id: evId,
         dep_id: depId,
         ev_skor: ev === "" ? null : Number(ev),
@@ -293,7 +324,7 @@ function YeniMac({
   return (
     <Panel baslik="Maç ekle" sag="Skoru boş bırakırsan fikstüre eklenir">
       <form onSubmit={gonder} className="grid gap-4 p-4">
-        <div className="max-w-[220px]">
+        <div className="grid max-w-[380px] grid-cols-[1fr_130px] gap-3">
           <Alan etiket="Maç tarihi">
             <Girdi
               id="tarih"
@@ -305,7 +336,19 @@ function YeniMac({
               }}
             />
           </Alan>
+          <Alan etiket="Saat">
+            <Girdi
+              id="saat"
+              type="time"
+              value={saat}
+              onChange={(e) => setSaat(e.target.value)}
+            />
+          </Alan>
         </div>
+        <p className="-mt-2 text-xs text-muted-dark">
+          Saat, fikstür duyuru görselinde yazar. Boş bırakırsan görselde
+          &ldquo;saat açıklanacak&rdquo; der, sonradan da girebilirsin.
+        </p>
 
         {/* Mobilde: her takım kendi skoruyla aynı satırda.
             Masaüstünde: ev · skor · skor · deplasman (order sınıflarıyla). */}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dugme } from "@/components/admin/ui";
+import { LIG_SAAT_DILIMI, ligSaati } from "@/lib/zaman";
 
 /**
  * Maç sonucu paylaşım görseli — 1080×1080 PNG.
@@ -96,9 +97,15 @@ export type MacGorselVerisi = {
   depAd: string;
   evLogo?: string | null;
   depLogo?: string | null;
-  evSkor: number;
-  depSkor: number;
+  /**
+   * Skor doluysa "maç sonucu" görseli, boşsa "yaklaşan maç" duyurusu çizilir.
+   * Duyuruda skorun yerini saat alır ve kazanan vurgusu yapılmaz.
+   */
+  evSkor: number | null;
+  depSkor: number | null;
   tarih: string | null;
+  /** Saat yer tutucuysa (öğlen) görselde saat yerine "açıklanacak" yazılır. */
+  saatBelirsiz?: boolean;
   sezon: string;
   hukmen?: boolean;
 };
@@ -207,10 +214,15 @@ export function MacGorseli({
     if ("letterSpacing" in ctx) ctx.letterSpacing = "10px";
     ctx.fillText("SAHABİZİM LİGİ", M, 272);
 
-    // MAÇ SONUCU
-    ctx.fillStyle = "rgba(207,224,213,0.75)";
+    // Üst etiket — sonuç mu, yaklaşan maç duyurusu mu?
+    const duyuru = mac.evSkor === null || mac.depSkor === null;
+    ctx.fillStyle = duyuru ? "#4ADE80" : "rgba(207,224,213,0.75)";
     ctx.font = `700 26px ${data}`;
-    ctx.fillText(mac.hukmen ? "HÜKMEN SONUÇ" : "MAÇ SONUCU", M, 318);
+    ctx.fillText(
+      duyuru ? "YAKLAŞAN MAÇ" : mac.hukmen ? "HÜKMEN SONUÇ" : "MAÇ SONUCU",
+      M,
+      318,
+    );
     if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
 
     // Takım blokları
@@ -219,8 +231,9 @@ export function MacGorseli({
     const rozetY = 516;
     const yaricap = 96;
 
-    const kazananEv = mac.evSkor > mac.depSkor;
-    const kazananDep = mac.depSkor > mac.evSkor;
+    // Duyuruda henüz kazanan yok; altın vurgu yalnız sonuç görselinde.
+    const kazananEv = !duyuru && (mac.evSkor as number) > (mac.depSkor as number);
+    const kazananDep = !duyuru && (mac.depSkor as number) > (mac.evSkor as number);
 
     const [evArma, depArma] = await Promise.all([
       gorselYukle(mac.evLogo),
@@ -288,21 +301,40 @@ export function MacGorseli({
       }
     }
 
-    // Skor — ayraç olarak yazı yerine kısa bir çubuk çiziliyor,
-    // Anton'un tire karakteri bu boyutta kaybolduğu için.
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `132px ${display}`;
-    ctx.fillText(`${mac.evSkor}`, M - 92, rozetY + 46);
-    ctx.fillText(`${mac.depSkor}`, M + 92, rozetY + 46);
-    ctx.fillStyle = "#4ADE80";
-    ctx.fillRect(M - 22, rozetY - 6, 44, 11);
+    if (duyuru) {
+      // Ortada skor yerine karşılaşma işareti ve saat.
+      ctx.fillStyle = "rgba(255,255,255,0.34)";
+      ctx.font = `62px ${display}`;
+      ctx.fillText("VS", M, rozetY - 22);
+
+      if (!mac.saatBelirsiz && mac.tarih) {
+        // Lig saatine sabit: yönetici yurt dışındayken görselde kayık
+        // saat çıkmasın, sitede yazan saatle birebir aynı olsun.
+        const saat = ligSaati(mac.tarih);
+        ctx.fillStyle = "#4ADE80";
+        ctx.font = `86px ${display}`;
+        ctx.fillText(saat, M, rozetY + 78);
+      }
+    } else {
+      // Skor — ayraç olarak yazı yerine kısa bir çubuk çiziliyor,
+      // Anton'un tire karakteri bu boyutta kaybolduğu için.
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `132px ${display}`;
+      ctx.fillText(`${mac.evSkor}`, M - 92, rozetY + 46);
+      ctx.fillText(`${mac.depSkor}`, M + 92, rozetY + 46);
+      ctx.fillStyle = "#4ADE80";
+      ctx.fillRect(M - 22, rozetY - 6, 44, 11);
+    }
 
     // Alt bilgi
+    // Duyuruda gün adı da yazılıyor — "Cumartesi" bilgisi paylaşımda işe yarıyor.
     const tarihYazi = mac.tarih
       ? new Date(mac.tarih).toLocaleDateString("tr-TR", {
+          timeZone: LIG_SAAT_DILIMI,
+          weekday: duyuru ? "long" : undefined,
           day: "numeric",
           month: "long",
-          year: "numeric",
+          year: duyuru ? undefined : "numeric",
         })
       : mac.sezon;
 
@@ -315,7 +347,15 @@ export function MacGorseli({
 
     ctx.fillStyle = "#cfe0d5";
     ctx.font = `600 30px ${data}`;
-    ctx.fillText(`${tarihYazi} · ${mac.sezon} Sezonu`, M, 894);
+    // Sonuç görselinin alt yazısı olduğu gibi bırakıldı; yalnız duyuru
+    // büyük harfe çekiliyor, saat yoksa onu da burada söylüyoruz.
+    ctx.fillText(
+      duyuru
+        ? `${tarihYazi}${mac.saatBelirsiz ? " · SAAT AÇIKLANACAK" : ""}`.toLocaleUpperCase("tr")
+        : `${tarihYazi} · ${mac.sezon} Sezonu`,
+      M,
+      894,
+    );
 
     ctx.fillStyle = "#D4A72C";
     ctx.font = `700 28px ${data}`;
@@ -343,7 +383,10 @@ export function MacGorseli({
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `sahabizim-${temiz(mac.evAd)}-${mac.evSkor}-${mac.depSkor}-${temiz(mac.depAd)}.png`;
+        const duyuruMu = mac.evSkor === null || mac.depSkor === null;
+        a.download = duyuruMu
+          ? `sahabizim-mac-${temiz(mac.evAd)}-${temiz(mac.depAd)}.png`
+          : `sahabizim-${temiz(mac.evAd)}-${mac.evSkor}-${mac.depSkor}-${temiz(mac.depAd)}.png`;
         a.click();
         URL.revokeObjectURL(url);
       }, "image/png");
@@ -358,7 +401,11 @@ export function MacGorseli({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Maç sonucu görseli"
+      aria-label={
+        mac.evSkor === null || mac.depSkor === null
+          ? "Yaklaşan maç duyuru görseli"
+          : "Maç sonucu görseli"
+      }
       className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) kapat();

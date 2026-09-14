@@ -3,6 +3,7 @@ import Link from "next/link";
 import { rozet } from "@/lib/puan";
 import { SITE } from "@/lib/site";
 import { getMaclar, type FiksturMaci } from "@/lib/veri";
+import { gunBasligi, ligGunu, macSaati } from "@/lib/zaman";
 
 export const revalidate = 60;
 
@@ -60,9 +61,11 @@ export default async function FiksturSayfasi() {
 }
 
 function Bolum({ baslik, maclar }: { baslik: string; maclar: FiksturMaci[] }) {
+  // Gruplama lig saatine göre: ISO damgasının ilk 10 hanesi UTC tarihidir,
+  // akşam maçlarında gün kaymasına yol açabilir.
   const gunler = new Map<string, FiksturMaci[]>();
   for (const m of maclar) {
-    const anahtar = m.tarih ? m.tarih.slice(0, 10) : "tarihsiz";
+    const anahtar = m.tarih ? ligGunu(m.tarih) : "tarihsiz";
     const liste = gunler.get(anahtar) ?? [];
     liste.push(m);
     gunler.set(anahtar, liste);
@@ -75,14 +78,7 @@ function Bolum({ baslik, maclar }: { baslik: string; maclar: FiksturMaci[] }) {
         {[...gunler.entries()].map(([gun, liste]) => (
           <div key={gun}>
             <h3 className="mb-2 font-[family-name:var(--font-data)] text-sm uppercase tracking-[0.14em] text-muted">
-              {gun === "tarihsiz"
-                ? "Tarihi belirlenmedi"
-                : new Date(gun).toLocaleDateString("tr-TR", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
+              {gun === "tarihsiz" ? "Tarihi belirlenmedi" : gunBasligi(gun, true)}
             </h3>
             <ul className="overflow-hidden rounded border border-line bg-white">
               {liste.map((m) => (
@@ -100,6 +96,7 @@ function MacSatiri({ mac }: { mac: FiksturMaci }) {
   const oynandi = mac.durum === "oynandi" || mac.durum === "hukmen";
   const evKazandi = oynandi && (mac.evSkor ?? 0) > (mac.depSkor ?? 0);
   const depKazandi = oynandi && (mac.depSkor ?? 0) > (mac.evSkor ?? 0);
+  const saat = macSaati(mac.tarih);
 
   return (
     <li className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-line px-3 py-3 last:border-b-0 md:gap-4 md:px-5">
@@ -110,9 +107,18 @@ function MacSatiri({ mac }: { mac: FiksturMaci }) {
           <span className="tabular font-[family-name:var(--font-display)] text-2xl">
             {mac.evSkor} – {mac.depSkor}
           </span>
+        ) : mac.durum === "ertelendi" ? (
+          <span className="font-[family-name:var(--font-data)] text-sm uppercase tracking-wider text-muted">
+            Ertelendi
+          </span>
+        ) : saat ? (
+          /* Saat girilmişse "vs" yerine saat — fikstürde en çok aranan bilgi bu. */
+          <span className="tabular font-[family-name:var(--font-data)] text-xl font-bold text-ink">
+            {saat}
+          </span>
         ) : (
           <span className="font-[family-name:var(--font-data)] text-sm uppercase tracking-wider text-muted">
-            {mac.durum === "ertelendi" ? "Ertelendi" : "vs"}
+            vs
           </span>
         )}
         {mac.durum === "hukmen" && (

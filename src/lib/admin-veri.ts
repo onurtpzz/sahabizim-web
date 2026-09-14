@@ -56,19 +56,23 @@ function db() {
 }
 
 /**
- * Tarayıcının yerel saatine göre bugünün tarihi: "2026-09-13".
- * `toISOString()` UTC'ye çevirdiği için Türkiye'de gece yarısı–03:00 arasında
- * bir önceki günü verirdi; bu yüzden kullanılmıyor.
+ * Tarih/saat yardımcıları `@/lib/zaman` içinde — site tarafı da aynılarını
+ * kullanıyor, o yüzden Supabase'e bağlı bu dosyada duramazlar. Panelin mevcut
+ * çağrıları bozulmasın diye buradan tekrar dışa veriliyorlar.
  */
-export function bugun() {
-  const d = new Date();
-  const iki = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${iki(d.getMonth() + 1)}-${iki(d.getDate())}`;
-}
+export {
+  SAAT_YER_TUTUCU,
+  bugun,
+  isoSaati,
+  isoTarihi,
+  saatBelirsizMi,
+  tarihiIsoYap,
+} from "@/lib/zaman";
 
-/** "2026-09-13" → o günün yerel öğlen saatinin ISO karşılığı. Saat dilimi kayması olmaz. */
-export function tarihiIsoYap(tarih: string) {
-  return tarih ? new Date(`${tarih}T12:00:00`).toISOString() : null;
+/** Maçın tarih ve saatini günceller (skora dokunmaz). */
+export async function macZamaniKaydet(id: string, oynanma: string | null) {
+  const { error } = await db().from("maclar").update({ oynanma }).eq("id", id);
+  if (error) throw error;
 }
 
 /** Türkçe karakterleri sadeleştirip URL'de kullanılabilir hale getirir. */

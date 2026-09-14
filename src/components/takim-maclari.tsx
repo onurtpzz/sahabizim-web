@@ -1,17 +1,29 @@
 import Link from "next/link";
 import type { FiksturMaci } from "@/lib/veri";
+import { LIG_SAAT_DILIMI, macSaati } from "@/lib/zaman";
 
 /**
  * Takım sayfasındaki maç listesi — veriler fikstürden gelir.
  * Aynı satır hem oynanmış hem oynanacak maç için kullanılıyor.
  */
 
+// Saat dilimi açıkça veriliyor: bu bileşen sunucuda render ediliyor ve
+// Vercel sunucusu UTC'de çalışıyor — akşam maçlarında tarih bir gün kayardı.
 function tarihYaz(tarih: string | null) {
   if (!tarih) return { kisa: "—", tam: "" };
   const d = new Date(tarih);
   return {
-    kisa: d.toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
-    tam: d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }),
+    kisa: d.toLocaleDateString("tr-TR", {
+      timeZone: LIG_SAAT_DILIMI,
+      day: "2-digit",
+      month: "short",
+    }),
+    tam: d.toLocaleDateString("tr-TR", {
+      timeZone: LIG_SAAT_DILIMI,
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }),
   };
 }
 
@@ -82,8 +94,9 @@ function MacSatiri({ mac, slug }: { mac: FiksturMaci; slug: string }) {
 
       <span className="flex items-center gap-2.5">
         {bizimSkor === null || rakipSkor === null ? (
+          /* Saat girilmişse "Oynanacak" yerine saati göster. */
           <span className="font-[family-name:var(--font-data)] text-sm text-muted">
-            Oynanacak
+            {macSaati(mac.tarih) ?? "Oynanacak"}
           </span>
         ) : (
           <span className="display tabular text-xl">

@@ -307,38 +307,26 @@ export async function talepOkundu(id: string, okundu: boolean) {
 }
 
 // ------------------------------------------------------------------ sezon
+/**
+ * Sezonu kapatır ve yenisini açar — TEK Postgres işlemi olarak.
+ *
+ * Eskiden burada dört ayrı yazma vardı (arşivle → eskiyi kapat → yeniyi aç →
+ * `devir_*` sıfırla). Arada bağlantı koparsa veritabanı yarım kalıyordu; en
+ * kötüsü 2. adım çalışıp 3. çalışmazsa hiç aktif sezon kalmıyor ve puan
+ * durumu boşalıyordu. Artık `yeni_sezon` fonksiyonu (13-sezon-sifirlama.sql)
+ * hepsini tek transaction'da yapıyor: ya hepsi olur ya hiçbiri.
+ *
+ * Geri alma reçetesi o SQL dosyasının sonunda yazılı; sıfırlama sırasında
+ * silinen `devir_*` değerleri artık arşiv satırında saklanıyor.
+ */
 export async function yeniSezon(ad: string, takimlariTasi: boolean) {
-  const eski = await aktifSezon();
-  if (eski) {
-    // ÖNCE arşivle: `puan_durumu` görünümü yalnız aktif sezonu hesaplar,
-    // sezon kapandıktan sonra o tabloyu bir daha üretemeyiz.
-    await sezonuArsivle(eski.id);
-
-    const { error } = await db()
-      .from("sezonlar")
-      .update({ aktif: false, bitti: new Date().toISOString().slice(0, 10) })
-      .eq("id", eski.id);
-    if (error) throw error;
-  }
-
-  const { error: hata } = await db().from("sezonlar").insert({
-    ad,
-    slug: sezonSlug(ad),
-    aktif: true,
-    basladi: new Date().toISOString().slice(0, 10),
+  const { data, error } = await db().rpc("yeni_sezon", {
+    p_ad: ad.trim(),
+    p_slug: sezonSlug(ad),
+    p_takimlari_tasi: takimlariTasi,
   });
-  if (hata) throw hata;
-
-  // Yeni sezon sıfırdan başlar: devir istatistikleri temizlenir.
-  const { error: sifirla } = await db()
-    .from("takimlar")
-    .update({
-      devir_o: 0, devir_g: 0, devir_b: 0, devir_m: 0,
-      devir_a: 0, devir_y: 0, devir_son3: [],
-      ...(takimlariTasi ? {} : { aktif: false }),
-    })
-    .neq("id", "00000000-0000-0000-0000-000000000000");
-  if (sifirla) throw sifirla;
+  if (error) throw error;
+  return (data ?? {}) as { sezon_id: string; arsivlenen: number; eski_sezon_id: string | null };
 }
 
 // ------------------------------------------------------- sosyal içerikler
@@ -513,34 +501,6 @@ export async function puanDurumuGetir() {
   }[];
 }
 
-/**
- * Arşivleme için tam tablo: aktif takımlara ek olarak, pasife alınmış ama bu
- * sezon maç oynamış takımları da içerir (`puan_durumu_tam` görünümü).
- *
- * Neden ayrı: sitedeki `puan_durumu` yalnız aktif takımları gösteriyor. Sezon
- * ortasında ligden ayrılan bir takım oradan düşüyor, ama oynadığı maçlar
- * rakiplerinin istatistiklerinde duruyor. Arşiv o görünümden beslenseydi takım
- * tarihe hiç geçmezdi ve sezon kapandıktan sonra geri getirilemezdi.
- */
-export async function puanDurumuTamGetir() {
-  const { data, error } = await db().from("puan_durumu_tam").select("*").order("sira");
-  if (error) throw error;
-  return (data ?? []) as {
-    sira: number;
-    id: string;
-    ad: string;
-    slug: string;
-    aktif: boolean;
-    o: number;
-    g: number;
-    b: number;
-    m: number;
-    a: number;
-    y: number;
-    av: number;
-    p: number;
-  }[];
-}
 
 // --------------------------------------------------------- sezon arşivi
 /**
@@ -549,40 +509,17 @@ export async function puanDurumuTamGetir() {
  * yalnız aktif sezonu hesaplar, sezon kapandıktan sonra o tablo bir daha
  * üretilemez.
  *
- * Kaynak `puan_durumu_tam`: sezon ortasında pasife alınan takımlar da tarihe
- * geçsin diye. Onların maçları zaten rakiplerinin rakamlarında sayılıyor;
- * arşivde karşılığı olmasaydı tablo kendi içinde tutmazdı.
+ * Asıl iş `sezonu_arsivle` SQL fonksiyonunda (13-sezon-sifirlama.sql). Sezon
+ * sıfırlama da aynı fonksiyonu çağırıyor, böylece iki ayrı arşivleme mantığı
+ * olmuyor. Kaynağı `puan_durumu_tam`: sezon ortasında pasife alınan takımlar
+ * da tarihe geçiyor.
+ *
+ * Dönen sayı arşive yazılan takım sayısıdır.
  */
 export async function sezonuArsivle(sezonId: string) {
-  const tablo = await puanDurumuTamGetir();
-  if (!tablo.length) throw new Error("Puan durumu boş, arşivlenecek bir şey yok.");
-
-  const { data: takimlar } = await db().from("takimlar").select("id, logo_url");
-  const logolar = Object.fromEntries((takimlar ?? []).map((t) => [t.id, t.logo_url]));
-
-  const satirlar = tablo.map((r) => ({
-    sezon_id: sezonId,
-    takim_id: r.id,
-    sira: r.sira,
-    takim_ad: r.ad,
-    slug: r.slug,
-    logo_url: (logolar[r.id] as string | null) ?? null,
-    o: r.o, g: r.g, b: r.b, m: r.m, a: r.a, y: r.y, av: r.av, p: r.p,
-  }));
-
-  // Çakışma anahtarı takımın kimliği — slug değil. Slug takım adından
-  // üretiliyor; ad düzeltilirse (yazım hatası vb.) slug değişiyor ve ikinci
-  // arşivleme eski satırı tanımayıp aynı takımı tekrar yazıyordu.
-  const { error } = await db()
-    .from("sezon_arsivi")
-    .upsert(satirlar, { onConflict: "sezon_id,takim_id" });
+  const { data, error } = await db().rpc("sezonu_arsivle", { p_sezon_id: sezonId });
   if (error) throw error;
-
-  const sampiyon = tablo.find((r) => r.sira === 1);
-  if (sampiyon) {
-    await db().from("sezonlar").update({ sampiyon_id: sampiyon.id }).eq("id", sezonId);
-  }
-  return satirlar.length;
+  return (data as number) ?? 0;
 }
 
 /** "2026–2027" → "2026-2027" */

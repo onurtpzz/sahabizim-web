@@ -4,6 +4,35 @@ Bu dosya, projede çalışan yapay zekâ oturumları içindir. Genel yol haritas
 `sahabizim-yol-haritasi.md` dosyasındadır; kapsam, fazlar ve kararlar oradadır.
 Kod incelemesi ve açık maddeler için `sahabizim-inceleme-raporu.md`.
 
+## ⛔ CANLI VERİYE DOKUNMA — her şeyden önce gelir
+
+**Bu projenin veritabanı yedeği YOKTUR.** Supabase ücretsiz planında otomatik günlük yedek
+yok (14.09.2026'da doğrulandı: yedek yalnız Pro ve üstünde var). Elle alınmış bir yedek de
+şu an yok. Yani canlı veride yapılan her hata **kalıcıdır, geri dönüşü yoktur.**
+
+Site operasyonu baştan sona yapay zekâ ile yürütülüyor; o yüzden bu kural diğer bütün
+kuralların önünde gelir.
+
+**Sen ASLA canlı veriyi kendiliğinden değiştirmezsin.** Aşağıdakilerden birini yapacaksan
+ÖNCE dur, ne olacağını açıkça anlat ve kullanıcının onayını bekle:
+
+- `delete`, `truncate`, `update` — yani var olan satırları değiştiren veya silen her SQL
+- `drop table`, `drop column`, `drop view`, `drop index`, veri kaybettiren `alter table`
+- Sezon sıfırlama (`yeniSezon`), arşivleme, devir istatistiklerini (`devir_*`) değiştirmek
+- Depodaki (storage) dosyaları silmek veya taşımak
+- Toplu kayıt güncelleyen herhangi bir betik
+
+Onay isterken şunları söyle: **hangi tablo, kaç satır, geri alınabilir mi, alınamazsa ne
+kaybolur.** "Tekrar çalıştırmak zarar vermez" demek yetmez — neden zarar vermediğini yaz.
+
+**Onay gerektirmeyenler** (şema eklemeleri, veriye dokunmazlar): `create table if not
+exists`, yeni sütun ekleme, `create or replace view`, yeni index, yeni RLS politikası,
+yeni SQL dosyası yazmak. Yine de SQL dosyasını kullanıcının çalıştıracağını hatırlat ve
+sırasını söyle (kod önce mi, SQL önce mi).
+
+**Kod yazmak serbesttir.** Bu kural veritabanı ve depo içindir; dosya düzenlemek, bileşen
+eklemek, yeni SQL dosyası *yazmak* onay gerektirmez — onu *çalıştırmak* kullanıcının işi.
+
 ## Dil
 
 Arayüz metinleri, değişken/fonksiyon adları ve yorumlar **Türkçe**. Teknik terimlerde
@@ -95,6 +124,8 @@ sınır böylece yüklenebilecek dosya sayısını da kapatıyor. Fotoğraf tara
 > sayım hep 0 döner ve kural sessizce işlevsiz kalır.
 
 ## Veritabanı
+
+Yedek yok — yukarıdaki "CANLI VERİYE DOKUNMA" kuralı burada da geçerli.
 
 SQL dosyaları `supabase/` altında, numara sırasıyla çalıştırılır. Yeni bir dosya eklersen
 Supabase → SQL Editor'da çalıştırılması gerektiğini söyle. RLS uyarısı çıkarsa

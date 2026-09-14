@@ -163,7 +163,6 @@ export function HaftaninOzeti({ ozet }: { ozet: HaftaOzeti }) {
         </Reveal>
 
         <p className="mt-4 text-sm text-muted-dark">
-          Bu bölüm fikstürden kendiliğinden hesaplanır; skor girdikçe güncellenir.{" "}
           <Link href="/fikstur" className="font-semibold text-brand-lite hover:underline">
             Tüm maçlar →
           </Link>

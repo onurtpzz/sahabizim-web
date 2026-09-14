@@ -1,10 +1,24 @@
 import { cache } from "react";
+import { hafizala } from "@/lib/onbellek";
 import { puanDurumu as yedekPuanDurumu } from "@/lib/puan";
 import { supabase } from "@/lib/supabase";
 import type { MacSonucu, PuanSatiri } from "@/lib/types";
 
 /** Sayfalar en fazla bu kadar saniye önbellekte kalır. */
 export const revalidate = 60;
+
+/**
+ * ÖNBELLEK DÜZENİ — her veri fonksiyonu iki katman kullanır:
+ *
+ *   cache(...)     → React: aynı istek/render içindeki tekrar çağrıları birleştirir.
+ *                    (ör. takım sayfasının `generateMetadata` + gövde ikilisi)
+ *   hafizala(...)  → modül belleği: ayrı render'lar arasında da sonucu kısa süre
+ *                    tutar. Statik üretimde 64 takım sayfası aynı puan durumunu
+ *                    tek sorguyla paylaşır.
+ *
+ * Yeni bir veri fonksiyonu eklerken aynı sarmalamayı uygulayın; aksi halde her
+ * sayfa kendi sorgusunu atar.
+ */
 
 type PuanSatiriDB = {
   sira: number;
@@ -54,30 +68,37 @@ function cevir(r: PuanSatiriDB): PuanSatiri & { logoUrl: string | null; takimId:
  * Puan durumunu veritabanından okur. Supabase ayarlı değilse veya sorgu
  * başarısız olursa `src/data/takimlar.ts` içindeki yedek veriye döner.
  */
-export const getPuanDurumu = cache(async (): Promise<
-  (PuanSatiri & { logoUrl?: string | null; takimId?: string })[]
-> => {
-  if (!supabase) return yedekPuanDurumu();
+export const getPuanDurumu = cache(
+  hafizala("puan-durumu", async (): Promise<
+    (PuanSatiri & { logoUrl?: string | null; takimId?: string })[]
+  > => {
+    if (!supabase) return yedekPuanDurumu();
 
-  const { data, error } = await supabase
-    .from("puan_durumu")
-    .select("*")
-    .order("sira");
+    const { data, error } = await supabase
+      .from("puan_durumu")
+      .select("*")
+      .order("sira");
 
-  if (error || !data?.length) {
-    if (error) console.warn("Puan durumu okunamadı, yedek veri kullanılıyor:", error.message);
-    return yedekPuanDurumu();
-  }
+    if (error || !data?.length) {
+      if (error) console.warn("Puan durumu okunamadı, yedek veri kullanılıyor:", error.message);
+      return yedekPuanDurumu();
+    }
 
-  return (data as PuanSatiriDB[]).map(cevir);
+    return (data as PuanSatiriDB[]).map(cevir);
+  }),
+);
+
+/** Slug → takım eşlemesi; tablo başına bir kez kurulur. */
+const getTakimlarSlugaGore = cache(async () => {
+  const tablo = await getPuanDurumu();
+  return new Map(tablo.map((t) => [t.slug, t] as const));
 });
 
-export async function getTakim(slug: string) {
-  const tablo = await getPuanDurumu();
-  return tablo.find((t) => t.slug === slug);
-}
+export const getTakim = cache(async (slug: string) => {
+  return (await getTakimlarSlugaGore()).get(slug);
+});
 
-export async function getLigOzeti() {
+export const getLigOzeti = cache(async () => {
   const tablo = await getPuanDurumu();
   const oynayan = tablo.filter((t) => t.oynadi);
   return {
@@ -86,7 +107,7 @@ export async function getLigOzeti() {
     toplamMac: Math.round(oynayan.reduce((s, t) => s + t.O, 0) / 2),
     toplamGol: oynayan.reduce((s, t) => s + t.A, 0),
   };
-}
+});
 
 // ---------------------------------------------------------------------
 // Görseller
@@ -100,18 +121,59 @@ export type Gorsel = {
   album: string | null;
 };
 
+/**
+ * Sabit yerleşimli görsellerin tamamı (hero, kampanya…) tek sorguda.
+ * Anasayfa üç ayrı slot kullanıyor; ayrı ayrı sorulsaydı üç istek olurdu.
+ */
+const getSlotGorselleri = cache(
+  hafizala("slot-gorselleri", async (): Promise<Record<string, string>> => {
+    if (!supabase) return {};
+    const { data, error } = await supabase
+      .from("gorseller")
+      .select("slot, url, olusturuldu")
+      .not("slot", "is", null)
+      .eq("yayinda", true)
+      .order("olusturuldu", { ascending: false });
+
+    if (error || !data) return {};
+
+    // Sorgu yeniden eskiye sıralı; her slot için ilk gelen (en yeni) kayıt kalır.
+    const sonuc: Record<string, string> = {};
+    for (const g of data as { slot: string | null; url: string }[]) {
+      if (g.slot && !(g.slot in sonuc)) sonuc[g.slot] = g.url;
+    }
+    return sonuc;
+  }),
+);
+
 /** Sitede sabit bir yere yerleşen görsel (hero, kampanya…). Yoksa yedek dosya. */
 export async function getSlotGorseli(slot: string, yedek: string): Promise<string> {
-  if (!supabase) return yedek;
-  const { data } = await supabase
-    .from("gorseller")
-    .select("url")
-    .eq("slot", slot)
-    .eq("yayinda", true)
-    .order("olusturuldu", { ascending: false })
-    .limit(1);
-  return data?.[0]?.url ?? yedek;
+  const hepsi = await getSlotGorselleri();
+  return hepsi[slot] ?? yedek;
 }
+
+/** Galeri kayıtları (ham). Veritabanında hiç görsel yoksa boş dizi döner. */
+const getGaleriKayitlari = cache(
+  hafizala("galeri", async (): Promise<Gorsel[]> => {
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from("gorseller")
+      .select("id, url, alt_metin, baslik, albom")
+      .is("slot", null)
+      .eq("yayinda", true)
+      .order("sira");
+
+    if (error || !data) return [];
+
+    return data.map((g) => ({
+      id: g.id as string,
+      url: g.url as string,
+      alt: (g.alt_metin as string) ?? "",
+      baslik: (g.baslik as string) ?? null,
+      album: (g.albom as string) ?? null,
+    }));
+  }),
+);
 
 /**
  * Galeri kayıtları. Veritabanında görsel varsa sadece onlar gösterilir.
@@ -120,37 +182,26 @@ export async function getSlotGorseli(slot: string, yedek: string): Promise<strin
  */
 export async function getGaleri(yedek: Gorsel[]): Promise<Gorsel[]> {
   if (!supabase) return yedek;
-  const { data, error } = await supabase
-    .from("gorseller")
-    .select("id, url, alt_metin, baslik, albom")
-    .is("slot", null)
-    .eq("yayinda", true)
-    .order("sira");
 
-  if (error || !data?.length) {
-    const ayarlar = await getAyarlar();
-    return ayarlar.varsayilan_gorseller === "hayir" ? [] : yedek;
-  }
+  const kayitlar = await getGaleriKayitlari();
+  if (kayitlar.length) return kayitlar;
 
-  return data.map((g) => ({
-    id: g.id as string,
-    url: g.url as string,
-    alt: (g.alt_metin as string) ?? "",
-    baslik: (g.baslik as string) ?? null,
-    album: (g.albom as string) ?? null,
-  }));
+  const ayarlar = await getAyarlar();
+  return ayarlar.varsayilan_gorseller === "hayir" ? [] : yedek;
 }
 
 // ---------------------------------------------------------------------
 // Site ayarları
 // ---------------------------------------------------------------------
 
-export const getAyarlar = cache(async (): Promise<Record<string, string>> => {
-  if (!supabase) return {};
-  const { data } = await supabase.from("ayarlar").select("anahtar, deger");
-  if (!data) return {};
-  return Object.fromEntries(data.map((a) => [a.anahtar as string, (a.deger as string) ?? ""]));
-});
+export const getAyarlar = cache(
+  hafizala("ayarlar", async (): Promise<Record<string, string>> => {
+    if (!supabase) return {};
+    const { data } = await supabase.from("ayarlar").select("anahtar, deger");
+    if (!data) return {};
+    return Object.fromEntries(data.map((a) => [a.anahtar as string, (a.deger as string) ?? ""]));
+  }),
+);
 
 /** Varsayılan metinler — veritabanında karşılığı yoksa bunlar kullanılır. */
 export const VARSAYILAN_ICERIK = {
@@ -231,18 +282,20 @@ export type SosyalIcerik = {
 };
 
 /** Panelden eklenen Instagram gönderileri ve YouTube videoları. */
-export async function getSosyalIcerikler(limit = 6): Promise<SosyalIcerik[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("sosyal_icerikler")
-    .select("id, tur, url, baslik")
-    .eq("yayinda", true)
-    .order("sira")
-    .order("olusturuldu", { ascending: false })
-    .limit(limit);
-  if (error || !data) return [];
-  return data as SosyalIcerik[];
-}
+export const getSosyalIcerikler = cache(
+  hafizala("sosyal", async (limit: number = 6): Promise<SosyalIcerik[]> => {
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from("sosyal_icerikler")
+      .select("id, tur, url, baslik")
+      .eq("yayinda", true)
+      .order("sira")
+      .order("olusturuldu", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return data as SosyalIcerik[];
+  }),
+);
 
 // ---------------------------------------------------------------------
 // Fikstür
@@ -269,62 +322,81 @@ type MacSatiriDB = {
 };
 
 /** Aktif sezonun maçları — en yeniden eskiye. */
-export const getMaclar = cache(async (): Promise<FiksturMaci[]> => {
-  if (!supabase) return [];
+export const getMaclar = cache(
+  hafizala("maclar", async (): Promise<FiksturMaci[]> => {
+    if (!supabase) return [];
 
-  const { data: sezon } = await supabase
-    .from("sezonlar")
-    .select("id")
-    .eq("aktif", true)
-    .limit(1);
-  const sezonId = sezon?.[0]?.id;
-  if (!sezonId) return [];
+    const { data: sezon } = await supabase
+      .from("sezonlar")
+      .select("id")
+      .eq("aktif", true)
+      .limit(1);
+    const sezonId = sezon?.[0]?.id;
+    if (!sezonId) return [];
 
-  /**
-   * DİKKAT — Supabase tek sorguda en fazla 1000 satır döndürür ve fazlasını
-   * HATA VERMEDEN keser. 64 takımlı bir sezonda bu sınır 30. hafta civarında
-   * aşılır; o noktadan sonra fikstür, takım sayfasındaki maç listesi ve
-   * haftanın özeti sessizce eksik veriyle çalışırdı. Bu yüzden sonuç bitene
-   * kadar sayfa sayfa çekiliyor.
-   *
-   * Sıralamada `id` de var: `oynanma` eşit (ya da boş) satırlarda sıra
-   * belirsiz kalırsa sayfalar arasında kayıt tekrarlanır veya atlanır.
-   */
-  const SAYFA = 1000;
-  const satirlar: MacSatiriDB[] = [];
+    /**
+     * DİKKAT — Supabase tek sorguda en fazla 1000 satır döndürür ve fazlasını
+     * HATA VERMEDEN keser. 64 takımlı bir sezonda bu sınır 30. hafta civarında
+     * aşılır; o noktadan sonra fikstür, takım sayfasındaki maç listesi ve
+     * haftanın özeti sessizce eksik veriyle çalışırdı. Bu yüzden sonuç bitene
+     * kadar sayfa sayfa çekiliyor.
+     *
+     * Sıralamada `id` de var: `oynanma` eşit (ya da boş) satırlarda sıra
+     * belirsiz kalırsa sayfalar arasında kayıt tekrarlanır veya atlanır.
+     */
+    const SAYFA = 1000;
+    const satirlar: MacSatiriDB[] = [];
 
-  for (let bas = 0; ; bas += SAYFA) {
-    const { data, error } = await supabase
-      .from("maclar")
-      .select(
-        "id, oynanma, durum, ev_skor, dep_skor, ev:ev_id(ad, slug, logo_url), dep:dep_id(ad, slug, logo_url)",
-      )
-      .eq("sezon_id", sezonId)
-      .order("oynanma", { ascending: false })
-      .order("id", { ascending: false })
-      .range(bas, bas + SAYFA - 1);
+    for (let bas = 0; ; bas += SAYFA) {
+      const { data, error } = await supabase
+        .from("maclar")
+        .select(
+          "id, oynanma, durum, ev_skor, dep_skor, ev:ev_id(ad, slug, logo_url), dep:dep_id(ad, slug, logo_url)",
+        )
+        .eq("sezon_id", sezonId)
+        .order("oynanma", { ascending: false })
+        .order("id", { ascending: false })
+        .range(bas, bas + SAYFA - 1);
 
-    if (error) {
-      console.warn("Maçlar okunamadı:", error.message);
-      break;
+      if (error) {
+        console.warn("Maçlar okunamadı:", error.message);
+        break;
+      }
+      if (!data?.length) break;
+
+      satirlar.push(...(data as unknown as MacSatiriDB[]));
+      if (data.length < SAYFA) break;
     }
-    if (!data?.length) break;
 
-    satirlar.push(...(data as unknown as MacSatiriDB[]));
-    if (data.length < SAYFA) break;
+    return satirlar
+      .filter((m) => m.ev && m.dep)
+      .map((m) => ({
+        id: m.id,
+        tarih: m.oynanma,
+        durum: m.durum,
+        evSkor: m.ev_skor,
+        depSkor: m.dep_skor,
+        ev: { ad: m.ev!.ad, slug: m.ev!.slug, logoUrl: m.ev!.logo_url },
+        dep: { ad: m.dep!.ad, slug: m.dep!.slug, logoUrl: m.dep!.logo_url },
+      }));
+  }),
+);
+
+/**
+ * Slug → o takımın maçları. Sezonun tamamını takım başına yeniden taramamak
+ * için bir kez kurulur; 64 takım sayfası aynı dizini paylaşır.
+ */
+const getMaclarTakimaGore = cache(async (): Promise<Map<string, FiksturMaci[]>> => {
+  const hepsi = await getMaclar();
+  const dizin = new Map<string, FiksturMaci[]>();
+  for (const m of hepsi) {
+    for (const slug of [m.ev.slug, m.dep.slug]) {
+      const liste = dizin.get(slug);
+      if (liste) liste.push(m);
+      else dizin.set(slug, [m]);
+    }
   }
-
-  return satirlar
-    .filter((m) => m.ev && m.dep)
-    .map((m) => ({
-      id: m.id,
-      tarih: m.oynanma,
-      durum: m.durum,
-      evSkor: m.ev_skor,
-      depSkor: m.dep_skor,
-      ev: { ad: m.ev!.ad, slug: m.ev!.slug, logoUrl: m.ev!.logo_url },
-      dep: { ad: m.dep!.ad, slug: m.dep!.slug, logoUrl: m.dep!.logo_url },
-    }));
+  return dizin;
 });
 
 // ---------------------------------------------------------------------
@@ -345,18 +417,20 @@ export type Duyuru = {
  * Yayındaki duyuru ve kurallar. Sıralama: önce sabitlenenler,
  * sonra duyurularda tarihe göre yeniden eskiye, kurallarda elle verilen sıra.
  */
-export async function getDuyurular(): Promise<Duyuru[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("duyurular")
-    .select("id, tur, tarih, baslik, metin, sabit, sira")
-    .eq("yayinda", true)
-    .order("sabit", { ascending: false })
-    .order("tarih", { ascending: false, nullsFirst: false })
-    .order("sira");
-  if (error || !data) return [];
-  return data as Duyuru[];
-}
+export const getDuyurular = cache(
+  hafizala("duyurular", async (): Promise<Duyuru[]> => {
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from("duyurular")
+      .select("id, tur, tarih, baslik, metin, sabit, sira")
+      .eq("yayinda", true)
+      .order("sabit", { ascending: false })
+      .order("tarih", { ascending: false, nullsFirst: false })
+      .order("sira");
+    if (error || !data) return [];
+    return data as Duyuru[];
+  }),
+);
 
 // ---------------------------------------------------------------------
 // Sezon arşivi
@@ -388,69 +462,81 @@ export type ArsivSezonu = {
 };
 
 /** Arşive alınmış (kapanmış) sezonlar — en yeniden eskiye. */
-export async function getArsivSezonlari(): Promise<ArsivSezonu[]> {
-  if (!supabase) return [];
-  const { data: sezonlar, error } = await supabase
-    .from("sezonlar")
-    .select("id, ad, slug, basladi, bitti")
-    .eq("aktif", false)
-    .order("basladi", { ascending: false });
-  if (error || !sezonlar?.length) return [];
+export const getArsivSezonlari = cache(
+  hafizala(
+    "arsiv-sezonlari",
+    async (): Promise<ArsivSezonu[]> => {
+      if (!supabase) return [];
+      const { data: sezonlar, error } = await supabase
+        .from("sezonlar")
+        .select("id, ad, slug, basladi, bitti")
+        .eq("aktif", false)
+        .order("basladi", { ascending: false });
+      if (error || !sezonlar?.length) return [];
 
-  const { data: satirlar } = await supabase
-    .from("sezon_arsivi")
-    .select("sezon_id, sira, takim_ad");
+      const { data: satirlar } = await supabase
+        .from("sezon_arsivi")
+        .select("sezon_id, sira, takim_ad");
 
-  return sezonlar
-    .map((s) => {
-      const kendi = (satirlar ?? []).filter((r) => r.sezon_id === s.id);
-      return {
-        id: s.id as string,
-        ad: s.ad as string,
-        slug: (s.slug as string) ?? "",
-        basladi: s.basladi as string | null,
-        bitti: s.bitti as string | null,
-        takimSayisi: kendi.length,
-        sampiyon: (kendi.find((r) => r.sira === 1)?.takim_ad as string) ?? null,
-      };
-    })
-    .filter((s) => s.takimSayisi > 0 && s.slug);
-}
+      return sezonlar
+        .map((s) => {
+          const kendi = (satirlar ?? []).filter((r) => r.sezon_id === s.id);
+          return {
+            id: s.id as string,
+            ad: s.ad as string,
+            slug: (s.slug as string) ?? "",
+            basladi: s.basladi as string | null,
+            bitti: s.bitti as string | null,
+            takimSayisi: kendi.length,
+            sampiyon: (kendi.find((r) => r.sira === 1)?.takim_ad as string) ?? null,
+          };
+        })
+        .filter((s) => s.takimSayisi > 0 && s.slug);
+    },
+    // Arşiv listesi kapanmış sezonlardan oluşur; nadiren değişir.
+    300,
+  ),
+);
 
 /** Bir sezonun arşivlenmiş final tablosu. */
-export async function getArsivTablosu(
-  slug: string,
-): Promise<{ sezon: ArsivSezonu; satirlar: ArsivSatiri[] } | null> {
-  if (!supabase) return null;
-  const { data: sezon } = await supabase
-    .from("sezonlar")
-    .select("id, ad, slug, basladi, bitti")
-    .eq("slug", slug)
-    .limit(1);
-  const s = sezon?.[0];
-  if (!s) return null;
+export const getArsivTablosu = cache(
+  hafizala(
+    "arsiv-tablosu",
+    async (slug: string): Promise<{ sezon: ArsivSezonu; satirlar: ArsivSatiri[] } | null> => {
+      if (!supabase) return null;
+      const { data: sezon } = await supabase
+        .from("sezonlar")
+        .select("id, ad, slug, basladi, bitti")
+        .eq("slug", slug)
+        .limit(1);
+      const s = sezon?.[0];
+      if (!s) return null;
 
-  const { data } = await supabase
-    .from("sezon_arsivi")
-    .select("sira, takim_ad, slug, logo_url, o, g, b, m, a, y, av, p")
-    .eq("sezon_id", s.id)
-    .order("sira");
-  if (!data?.length) return null;
+      const { data } = await supabase
+        .from("sezon_arsivi")
+        .select("sira, takim_ad, slug, logo_url, o, g, b, m, a, y, av, p")
+        .eq("sezon_id", s.id)
+        .order("sira");
+      if (!data?.length) return null;
 
-  const satirlar = data as ArsivSatiri[];
-  return {
-    sezon: {
-      id: s.id as string,
-      ad: s.ad as string,
-      slug: s.slug as string,
-      basladi: s.basladi as string | null,
-      bitti: s.bitti as string | null,
-      takimSayisi: satirlar.length,
-      sampiyon: satirlar.find((r) => r.sira === 1)?.takim_ad ?? null,
+      const satirlar = data as ArsivSatiri[];
+      return {
+        sezon: {
+          id: s.id as string,
+          ad: s.ad as string,
+          slug: s.slug as string,
+          basladi: s.basladi as string | null,
+          bitti: s.bitti as string | null,
+          takimSayisi: satirlar.length,
+          sampiyon: satirlar.find((r) => r.sira === 1)?.takim_ad ?? null,
+        },
+        satirlar,
+      };
     },
-    satirlar,
-  };
-}
+    // Arşiv kapanmış sezonun kopyası; değişmediği için daha uzun tutuluyor.
+    300,
+  ),
+);
 
 // ---------------------------------------------------------------------
 // Takım fotoğrafları (ziyaretçi yüklemesi, onaydan geçer)
@@ -463,29 +549,31 @@ export type TakimFotografi = {
   yukleyen_ad: string | null;
 };
 
-export async function getTakimFotograflari(
-  takimId: string | undefined,
-): Promise<TakimFotografi[]> {
-  if (!supabase || !takimId) return [];
-  const { data, error } = await supabase
-    .from("takim_fotograflari")
-    .select("id, url, aciklama, yukleyen_ad")
-    .eq("takim_id", takimId)
-    .eq("durum", "onayli")
-    .order("sira")
-    .order("olusturuldu", { ascending: false })
-    .limit(24);
-  if (error || !data) return [];
-  return data as TakimFotografi[];
-}
+export const getTakimFotograflari = cache(
+  hafizala(
+    "takim-fotograflari",
+    async (takimId: string | undefined): Promise<TakimFotografi[]> => {
+      if (!supabase || !takimId) return [];
+      const { data, error } = await supabase
+        .from("takim_fotograflari")
+        .select("id, url, aciklama, yukleyen_ad")
+        .eq("takim_id", takimId)
+        .eq("durum", "onayli")
+        .order("sira")
+        .order("olusturuldu", { ascending: false })
+        .limit(24);
+      if (error || !data) return [];
+      return data as TakimFotografi[];
+    },
+  ),
+);
 
 /**
  * Bir takımın bu sezonki maçları. `oynanan` en yeniden eskiye (en fazla `adet`
  * tane), `sirada` en yakın tarihten uzağa.
  */
-export async function getTakimMaclari(slug: string, adet = 10) {
-  const hepsi = await getMaclar();
-  const kendi = hepsi.filter((m) => m.ev.slug === slug || m.dep.slug === slug);
+export const getTakimMaclari = cache(async (slug: string, adet = 10) => {
+  const kendi = (await getMaclarTakimaGore()).get(slug) ?? [];
 
   const oynanan = kendi
     .filter((m) => m.durum === "oynandi" || m.durum === "hukmen")
@@ -497,34 +585,39 @@ export async function getTakimMaclari(slug: string, adet = 10) {
     .slice(0, 5);
 
   return { oynanan, sirada, toplam: kendi.length };
-}
+});
 
 /**
  * Onaylanmış takım fotoğrafları — takım adıyla birlikte. Galeri sayfası
  * bunları kendi kayıtlarının yanında gösterir; ayrıca `gorseller` tablosuna
  * kopyalanmaz, tek kayıt kalır (panelden silince her yerden gider).
  */
-export async function getOnayliTakimFotograflari(limit = 60): Promise<
-  (TakimFotografi & { takimAd: string; takimSlug: string })[]
-> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("takim_fotograflari")
-    .select("id, url, aciklama, yukleyen_ad, takimlar:takim_id(ad, slug)")
-    .eq("durum", "onayli")
-    .order("olusturuldu", { ascending: false })
-    .limit(limit);
-  if (error || !data) return [];
+export const getOnayliTakimFotograflari = cache(
+  hafizala(
+    "onayli-takim-fotograflari",
+    async (
+      limit: number = 60,
+    ): Promise<(TakimFotografi & { takimAd: string; takimSlug: string })[]> => {
+      if (!supabase) return [];
+      const { data, error } = await supabase
+        .from("takim_fotograflari")
+        .select("id, url, aciklama, yukleyen_ad, takimlar:takim_id(ad, slug)")
+        .eq("durum", "onayli")
+        .order("olusturuldu", { ascending: false })
+        .limit(limit);
+      if (error || !data) return [];
 
-  type Satir = TakimFotografi & { takimlar: { ad: string; slug: string } | null };
-  return (data as unknown as Satir[])
-    .filter((f) => f.takimlar)
-    .map((f) => ({
-      id: f.id,
-      url: f.url,
-      aciklama: f.aciklama,
-      yukleyen_ad: f.yukleyen_ad,
-      takimAd: f.takimlar!.ad,
-      takimSlug: f.takimlar!.slug,
-    }));
-}
+      type Satir = TakimFotografi & { takimlar: { ad: string; slug: string } | null };
+      return (data as unknown as Satir[])
+        .filter((f) => f.takimlar)
+        .map((f) => ({
+          id: f.id,
+          url: f.url,
+          aciklama: f.aciklama,
+          yukleyen_ad: f.yukleyen_ad,
+          takimAd: f.takimlar!.ad,
+          takimSlug: f.takimlar!.slug,
+        }));
+    },
+  ),
+);

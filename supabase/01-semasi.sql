@@ -81,7 +81,6 @@ alter table sezonlar
 create table if not exists maclar (
   id uuid primary key default gen_random_uuid(),
   sezon_id uuid not null references sezonlar (id) on delete cascade,
-  hafta smallint,
   oynanma timestamptz,
   saha text,
   ev_id uuid not null references takimlar (id) on delete restrict,
@@ -98,7 +97,8 @@ create table if not exists maclar (
   )
 );
 
-create index if not exists maclar_sezon_idx on maclar (sezon_id, hafta);
+-- Fikstür ve takım maç listesi sezon içinde tarihe göre tersten okunuyor.
+create index if not exists maclar_sezon_idx on maclar (sezon_id, oynanma desc, id desc);
 create index if not exists maclar_ev_idx on maclar (ev_id);
 create index if not exists maclar_dep_idx on maclar (dep_id);
 

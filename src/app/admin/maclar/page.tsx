@@ -299,7 +299,6 @@ function YeniMac({
     try {
       await macEkle({
         sezon_id: sezonId,
-        hafta: null,
         oynanma: tarihiIsoYap(tarih, saat),
         ev_id: evId,
         dep_id: depId,

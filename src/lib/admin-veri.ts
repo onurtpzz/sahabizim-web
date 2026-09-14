@@ -21,7 +21,6 @@ export type Takim = {
 export type Mac = {
   id: string;
   sezon_id: string;
-  hafta: number | null;
   oynanma: string | null;
   saha: string | null;
   ev_id: string;
@@ -145,7 +144,8 @@ export async function maclariGetir(sezonId: string): Promise<Mac[]> {
     .from("maclar")
     .select("*")
     .eq("sezon_id", sezonId)
-    .order("hafta", { ascending: false })
+    // Lig sabit haftalık tur üzerinden yürümüyor; maçlar takımların anlaştığı
+    // tarihe göre oynanıyor. Bu yüzden tek sıralama ölçütü oynanma tarihi.
     .order("oynanma", { ascending: false });
   if (error) throw error;
   return (data ?? []) as Mac[];
@@ -153,7 +153,6 @@ export async function maclariGetir(sezonId: string): Promise<Mac[]> {
 
 export async function macEkle(m: {
   sezon_id: string;
-  hafta: number | null;
   oynanma: string | null;
   ev_id: string;
   dep_id: string;

@@ -1,6 +1,6 @@
 export type MacSonucu = "G" | "B" | "M" | "";
 
-/** Faz 4'e kadar kullanılan geçici kayıt tipi. Sonra `Mac` kayıtlarından türetilecek. */
+/** Puan hesabında kullanılan takım kaydı — `puan_durumu` görünümünden türetilir. */
 export type TakimKaydi = {
   id: number;
   ad: string;
@@ -20,15 +20,4 @@ export type PuanSatiri = TakimKaydi & {
   AV: number;
   P: number;
   oynadi: boolean;
-};
-
-export type Mac = {
-  id: string;
-  hafta: number;
-  tarih: string;
-  evSlug: string;
-  depSlug: string;
-  evSkor: number | null;
-  depSkor: number | null;
-  durum: "oynanacak" | "oynandi" | "ertelendi";
 };

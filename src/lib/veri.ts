@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { puanDurumu as yedekPuanDurumu } from "@/lib/puan";
 import { supabase } from "@/lib/supabase";
 import type { MacSonucu, PuanSatiri } from "@/lib/types";
@@ -53,9 +54,9 @@ function cevir(r: PuanSatiriDB): PuanSatiri & { logoUrl: string | null; takimId:
  * Puan durumunu veritabanından okur. Supabase ayarlı değilse veya sorgu
  * başarısız olursa `src/data/takimlar.ts` içindeki yedek veriye döner.
  */
-export async function getPuanDurumu(): Promise<
+export const getPuanDurumu = cache(async (): Promise<
   (PuanSatiri & { logoUrl?: string | null; takimId?: string })[]
-> {
+> => {
   if (!supabase) return yedekPuanDurumu();
 
   const { data, error } = await supabase
@@ -69,7 +70,7 @@ export async function getPuanDurumu(): Promise<
   }
 
   return (data as PuanSatiriDB[]).map(cevir);
-}
+});
 
 export async function getTakim(slug: string) {
   const tablo = await getPuanDurumu();
@@ -144,12 +145,12 @@ export async function getGaleri(yedek: Gorsel[]): Promise<Gorsel[]> {
 // Site ayarları
 // ---------------------------------------------------------------------
 
-export async function getAyarlar(): Promise<Record<string, string>> {
+export const getAyarlar = cache(async (): Promise<Record<string, string>> => {
   if (!supabase) return {};
   const { data } = await supabase.from("ayarlar").select("anahtar, deger");
   if (!data) return {};
   return Object.fromEntries(data.map((a) => [a.anahtar as string, (a.deger as string) ?? ""]));
-}
+});
 
 /** Varsayılan metinler — veritabanında karşılığı yoksa bunlar kullanılır. */
 export const VARSAYILAN_ICERIK = {
@@ -209,14 +210,14 @@ export type IcerikAnahtari = keyof typeof VARSAYILAN_ICERIK;
  * Site metinleri: veritabanındaki değerler varsayılanların üzerine yazılır.
  * Böylece panelden değiştirilebilir ama veritabanı boşken de site doğru görünür.
  */
-export async function getIcerik(): Promise<Record<IcerikAnahtari, string>> {
+export const getIcerik = cache(async (): Promise<Record<IcerikAnahtari, string>> => {
   const kayit = await getAyarlar();
   const sonuc = { ...VARSAYILAN_ICERIK } as Record<IcerikAnahtari, string>;
   for (const [anahtar, deger] of Object.entries(kayit)) {
     if (anahtar in sonuc && deger.trim()) sonuc[anahtar as IcerikAnahtari] = deger;
   }
   return sonuc;
-}
+});
 
 // ---------------------------------------------------------------------
 // Sosyal medya içerikleri
@@ -268,7 +269,7 @@ type MacSatiriDB = {
 };
 
 /** Aktif sezonun maçları — en yeniden eskiye. */
-export async function getMaclar(): Promise<FiksturMaci[]> {
+export const getMaclar = cache(async (): Promise<FiksturMaci[]> => {
   if (!supabase) return [];
 
   const { data: sezon } = await supabase
@@ -300,7 +301,7 @@ export async function getMaclar(): Promise<FiksturMaci[]> {
       ev: { ad: m.ev!.ad, slug: m.ev!.slug, logoUrl: m.ev!.logo_url },
       dep: { ad: m.dep!.ad, slug: m.dep!.slug, logoUrl: m.dep!.logo_url },
     }));
-}
+});
 
 // ---------------------------------------------------------------------
 // Kurallar ve duyurular

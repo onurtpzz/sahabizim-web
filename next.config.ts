@@ -26,6 +26,13 @@ const nextConfig: NextConfig = {
       ? [{ protocol: "https", hostname: host, pathname: "/storage/v1/object/public/**" }]
       : [],
   },
+
+  // Open Graph görselleri fontlarını `src/og-fontlari/` içinden dosya olarak
+  // okuyor. Vercel'de sunucusuz pakete dahil edilmeleri için açıkça bildiriliyor;
+  // aksi halde sayfa yeniden üretilirken font bulunamaz.
+  outputFileTracingIncludes: {
+    "/**": ["./src/og-fontlari/**"],
+  },
 };
 
 export default nextConfig;

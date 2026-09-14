@@ -65,8 +65,15 @@ export default function AdminTakimlar() {
   }
 
   async function durumDegistir(t: Takim) {
-    await takimGuncelle(t.id, { aktif: !t.aktif });
-    await yenile();
+    try {
+      await takimGuncelle(t.id, { aktif: !t.aktif });
+      await yenile();
+    } catch (e) {
+      setMesaj({
+        tur: "hata",
+        metin: e instanceof Error ? e.message : "Takım durumu değiştirilemedi.",
+      });
+    }
   }
 
   async function sil(t: Takim) {

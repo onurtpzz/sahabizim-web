@@ -211,14 +211,14 @@ export default function AdminOzet() {
           {[
             { href: "/admin/maclar", l: "Skor gir" },
             { href: "/admin/takimlar", l: "Takım ekle" },
-            { href: "/admin/fotograflar", l: "Galeriye görsel ekle" },
+            { href: "/admin/fotograflar?bolum=galeri", l: "Galeriye görsel ekle" },
             { href: "/admin/duyurular", l: "Duyuru ekle" },
             { href: "/admin/puan", l: "Puan düzelt" },
             { href: "/admin/fotograflar", l: "Fotoğraf onayla" },
             { href: "/admin/ayarlar", l: "İletişim bilgileri" },
           ].map((k) => (
             <Link
-              key={k.href}
+              key={k.l}
               href={k.href}
               className="rounded-sm border border-white/15 px-4 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider text-[#cfe0d5] transition hover:border-brand-lite hover:text-white"
             >

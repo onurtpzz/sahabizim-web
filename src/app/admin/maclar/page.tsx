@@ -89,7 +89,26 @@ export default function AdminMaclar() {
     (bilgiler[m.ev_id]?.ad ?? "").toLocaleLowerCase("tr").includes(anahtar) ||
     (bilgiler[m.dep_id]?.ad ?? "").toLocaleLowerCase("tr").includes(anahtar);
 
-  const bekleyen = maclar.filter((m) => m.durum === "oynanacak" && eslesir(m));
+  /**
+   * "Skor bekleyen" ikiye ayrılıyor.
+   *
+   * Menüdeki rozet ve özet ekranı yalnız TARİHİ GEÇMİŞ skorsuz maçları sayıyor
+   * (`bekleyenIsler`). Bu liste hepsini bir arada gösterdiği için menüde 3,
+   * sayfada 17 yazıyordu. Artık iki panel: gecikenler ayrı, sıradakiler ayrı.
+   *
+   * Sıralama da düzeltildi: `maclariGetir` tarihi yeniden eskiye getiriyor,
+   * yani girilmesi gereken en eski maç listenin en altında kalıyordu. Bekleyen
+   * listelerde eskiden yeniye sıralıyoruz; girilen sonuçlar yeniden eskiye
+   * kalıyor (orada en son girilen maç üstte olmalı).
+   */
+  const simdi = Date.now();
+  const zaman = (m: Mac) => (m.oynanma ? Date.parse(m.oynanma) : Number.POSITIVE_INFINITY);
+  const eskidenYeniye = (a: Mac, b: Mac) => zaman(a) - zaman(b);
+
+  const tumBekleyen = maclar.filter((m) => m.durum === "oynanacak" && eslesir(m));
+  // Tarihi olmayan maç "geciken" sayılmıyor — rozet sorgusu da (`.lt`) saymıyor.
+  const geciken = tumBekleyen.filter((m) => zaman(m) < simdi).sort(eskidenYeniye);
+  const sirada = tumBekleyen.filter((m) => zaman(m) >= simdi).sort(eskidenYeniye);
   const tumOynanan = maclar.filter((m) => m.durum !== "oynanacak" && eslesir(m));
   const oynanan = tumOynanan.slice(0, gosterilen);
   const suzuluyor = anahtar !== "" || sadeceSkorsuz;
@@ -132,23 +151,38 @@ export default function AdminMaclar() {
         </div>
       </Panel>
 
-      {bekleyen.length > 0 && (
-        <Panel baslik="Skor bekleyen maçlar" sag={`${bekleyen.length} maç`}>
+      {geciken.length > 0 && (
+        <Panel
+          baslik="Skoru girilmemiş maçlar"
+          sag={`${geciken.length} maç · tarihi geçti`}
+        >
           <ul className="divide-y divide-white/8">
-            {bekleyen.map((m) => (
+            {geciken.map((m) => (
               <MacSatiri key={m.id} mac={m} bilgiler={bilgiler} yenile={yenile} setMesaj={setMesaj} />
             ))}
           </ul>
         </Panel>
       )}
 
-      {sadeceSkorsuz && bekleyen.length === 0 && (
-        <Panel baslik="Skor bekleyen maçlar">
-          <p className="p-5 text-sm text-muted-dark">
-            {anahtar
-              ? "Bu aramayla eşleşen, skoru girilmemiş maç yok."
-              : "Skoru girilmemiş maç yok — hepsi tamam."}
-          </p>
+      {sirada.length > 0 && (
+        <Panel baslik="Sıradaki maçlar" sag={`${sirada.length} maç · henüz oynanmadı`}>
+          <ul className="divide-y divide-white/8">
+            {sirada.map((m) => (
+              <MacSatiri key={m.id} mac={m} bilgiler={bilgiler} yenile={yenile} setMesaj={setMesaj} />
+            ))}
+          </ul>
+        </Panel>
+      )}
+
+      {sadeceSkorsuz && tumBekleyen.length === 0 && (
+        <Panel baslik="Skoru girilmemiş maçlar">
+          <BosDurum
+            simge="✓"
+            baslik={
+              anahtar ? "Eşleşen maç yok" : "Skoru girilmemiş maç yok"
+            }
+            metin={anahtar ? "Arama kutusunu temizleyip tekrar dene." : "Hepsi girilmiş."}
+          />
         </Panel>
       )}
 

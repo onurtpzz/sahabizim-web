@@ -65,6 +65,17 @@ export default function AdminFotograflar() {
     yenile();
   }, [yenile]);
 
+  /**
+   * Özet ekranındaki "Galeriye görsel ekle" kısayolu `?bolum=galeri` ile
+   * geliyor. `useSearchParams` yerine adres doğrudan okunuyor: o kanca
+   * istemci bileşeninde Suspense sınırı istiyor, buradaki tek ihtiyaç için
+   * fazla masraflı.
+   */
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("bolum") === "galeri") setBolum("galeri");
+  }, []);
+
   const gorunen = useMemo(
     () => kayitlar.filter((k) => k.durum === sekme),
     [kayitlar, sekme],

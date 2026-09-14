@@ -308,6 +308,28 @@ export async function talepOkundu(id: string, okundu: boolean) {
   if (error) throw error;
 }
 
+/**
+ * Talep siler. Tek kayıt için de toplu silme için de aynı fonksiyon.
+ *
+ * `.select("id")`: RLS bir DELETE'i engellerse PostgREST hata döndürmez,
+ * sessizce 0 satır siler. Dönen liste boşsa bunu hata sayıyoruz — yoksa panel
+ * "silindi" der, kayıt yerinde durur. (Silme izni `14-talep-silme.sql`
+ * dosyasıyla geliyor; çalıştırılmadıysa hata burada görünür.)
+ */
+export async function talepSil(idler: string[]) {
+  if (!idler.length) return 0;
+
+  const { data, error } = await db().from("talepler").delete().in("id", idler).select("id");
+  if (error) throw error;
+
+  if (!data?.length) {
+    throw new Error(
+      "Talep silinemedi. Silme izni tanımlı olmayabilir — supabase/14-talep-silme.sql dosyasını çalıştır.",
+    );
+  }
+  return data.length;
+}
+
 // ------------------------------------------------------------------ sezon
 /**
  * Sezonu kapatır ve yenisini açar — TEK Postgres işlemi olarak.

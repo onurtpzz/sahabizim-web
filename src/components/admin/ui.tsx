@@ -93,43 +93,58 @@ export function Bildirim({
   kapat: () => void;
   saniye?: number;
 }) {
+  /**
+   * `kapat` çağrı yerlerinde satır içi yazılıyor (`() => setMesaj(null)`), yani
+   * üst bileşenin her render'ında yeni bir fonksiyon geliyor. Bağımlılıkta
+   * dursaydı zamanlayıcı her render'da sıfırlanır, bildirim kapanmazdı —
+   * fotoğraf sayfasında önizlemeler yüklenirken tam bu oluyordu.
+   */
+  const kapatRef = useRef(kapat);
+  useEffect(() => {
+    kapatRef.current = kapat;
+  });
+
   useEffect(() => {
     if (!mesaj) return;
     // Hatalar biraz daha uzun kalsın — okunacak bir sebep içeriyorlar.
     const sure = (mesaj.tur === "hata" ? saniye * 2 : saniye) * 1000;
-    const zaman = setTimeout(kapat, sure);
+    const zaman = setTimeout(() => kapatRef.current(), sure);
     return () => clearTimeout(zaman);
-  }, [mesaj, kapat, saniye]);
-
-  if (!mesaj) return null;
+  }, [mesaj, saniye]);
 
   const stil =
-    mesaj.tur === "hata"
+    mesaj?.tur === "hata"
       ? "border-lose/60 bg-[#2a0f0c] text-[#ffd7d2]"
       : "border-brand/60 bg-[#06240f] text-[#d7f5df]";
 
+  /*
+   * Kabuk her zaman DOM'da: `aria-live` bölgesi mesajla birlikte doğarsa ekran
+   * okuyucular çoğunlukla duyurmuyor. İçerik koşullu, kabuk sabit.
+   */
   return (
     <div
       role="status"
       aria-live="polite"
       className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center sm:inset-x-auto sm:right-6 sm:bottom-6 sm:justify-end"
     >
-      <div
-        className={`pointer-events-auto flex w-full max-w-[420px] items-start gap-3 rounded border px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.45)] ${stil}`}
-      >
-        <span aria-hidden className="mt-0.5 text-base">
-          {mesaj.tur === "hata" ? "⚠" : "✓"}
-        </span>
-        <p className="flex-1 text-sm">{mesaj.metin}</p>
-        <button
-          type="button"
-          onClick={kapat}
-          aria-label="Bildirimi kapat"
-          className="-mr-1 -mt-1 px-1.5 text-lg leading-none opacity-60 hover:opacity-100"
+      {mesaj && (
+        <div
+          className={`pointer-events-auto flex w-full max-w-[420px] items-start gap-3 rounded border px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.45)] ${stil}`}
         >
-          ×
-        </button>
-      </div>
+          <span aria-hidden className="mt-0.5 text-base">
+            {mesaj.tur === "hata" ? "⚠" : "✓"}
+          </span>
+          <p className="flex-1 text-sm">{mesaj.metin}</p>
+          <button
+            type="button"
+            onClick={kapat}
+            aria-label="Bildirimi kapat"
+            className="-mt-1 -mr-1 px-1.5 text-lg leading-none opacity-60 hover:opacity-100"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }

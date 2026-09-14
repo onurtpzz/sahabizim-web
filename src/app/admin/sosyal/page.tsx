@@ -67,6 +67,15 @@ export default function AdminSosyal() {
     }
   }
 
+  async function yayinDegistir(k: SosyalKayit) {
+    try {
+      await sosyalGuncelle(k.id, { yayinda: !k.yayinda });
+      await yenile();
+    } catch (e) {
+      setMesaj({ tur: "hata", metin: e instanceof Error ? e.message : "Değiştirilemedi." });
+    }
+  }
+
   async function siraDegistir(k: SosyalKayit, yon: -1 | 1) {
     try {
       await siradaTasi(kayitlar, k.id, yon, (id, d) => sosyalGuncelle(id, d));
@@ -155,7 +164,12 @@ export default function AdminSosyal() {
                   </div>
 
                   <div className="min-w-0">
-                    <p className="font-[family-name:var(--font-data)] font-bold">
+                    <p className="flex flex-wrap items-center gap-2 font-[family-name:var(--font-data)] font-bold">
+                      {!k.yayinda && (
+                        <span className="rounded-sm border border-white/15 px-2 py-0.5 text-[11px] font-semibold tracking-wider text-muted-dark uppercase">
+                          Gizli
+                        </span>
+                      )}
                       {k.baslik ?? (k.tur === "youtube" ? "YouTube videosu" : "Instagram gönderisi")}
                     </p>
                     <a
@@ -187,19 +201,15 @@ export default function AdminSosyal() {
                     >
                       ↓
                     </button>
+                    {/* Düğme ne YAPACAĞINI yazar, durumu değil: "Yayında" yazan
+                        bir düğmeye basınca ne olacağı belirsizdi. Durum yukarıdaki
+                        rozette duruyor. */}
                     <button
                       type="button"
-                      onClick={async () => {
-                        await sosyalGuncelle(k.id, { yayinda: !k.yayinda });
-                        await yenile();
-                      }}
-                      className={`rounded-sm border px-3 py-1.5 font-[family-name:var(--font-data)] text-xs uppercase tracking-wider ${
-                        k.yayinda
-                          ? "border-brand/50 bg-brand/15 text-brand-lite"
-                          : "border-white/15 text-muted-dark"
-                      }`}
+                      onClick={() => yayinDegistir(k)}
+                      className="rounded-sm border border-white/20 px-3 py-1.5 font-[family-name:var(--font-data)] text-xs tracking-wider text-[#cfe0d5] uppercase hover:border-brand-lite hover:text-white"
                     >
-                      {k.yayinda ? "Yayında" : "Gizli"}
+                      {k.yayinda ? "Gizle" : "Yayınla"}
                     </button>
                     <button
                       type="button"

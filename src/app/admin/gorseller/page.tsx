@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Bildirim, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel, Uyari } from "@/components/admin/ui";
 import {
   ayarKaydet,
   ayarlariGetir,
@@ -85,7 +85,7 @@ export default function AdminGorseller() {
     }
   }
 
-  if (yukleniyor) return <p className="text-muted-dark">Yükleniyor…</p>;
+  if (yukleniyor) return <Iskelet satir={3} />;
 
   const galeri = kayitlar.filter((g) => !g.slot);
 

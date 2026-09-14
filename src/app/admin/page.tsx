@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Panel, Uyari } from "@/components/admin/ui";
+import { Iskelet, Panel, Uyari } from "@/components/admin/ui";
 import {
   aktifSezon,
   bekleyenIsler,
@@ -123,7 +123,7 @@ export default function AdminOzet() {
     );
   }
 
-  if (!sayilar) return <p className="text-muted-dark">Yükleniyor…</p>;
+  if (!sayilar) return <Iskelet satir={3} />;
 
   const kutular = [
     { l: "Takım", v: `${sayilar.aktifTakim}/${sayilar.takim}`, alt: "aktif / toplam" },

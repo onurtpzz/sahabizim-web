@@ -144,6 +144,84 @@ export function Rakam({ sayi }: { sayi: number }) {
   );
 }
 
+/**
+ * Geri alınamayan işlemlerin kutusu — kırmızı çerçeve, ayrı başlık.
+ *
+ * Sezon sıfırlama sıradan bir panelin içinde duruyordu; diğerleriyle aynı
+ * göründüğü için yanlışlıkla dokunma ihtimali vardı. Görsel olarak ayırmak
+ * en ucuz korumadır.
+ */
+export function TehlikeliBolge({
+  baslik,
+  aciklama,
+  children,
+}: {
+  baslik: string;
+  aciklama?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded border-2 border-lose/55 bg-[#1a0806]">
+      <header className="border-b border-lose/35 bg-lose/10 px-4 py-3">
+        <h2 className="flex items-center gap-2 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-[0.12em] text-[#ff9a8f]">
+          <span aria-hidden>⚠</span>
+          {baslik}
+        </h2>
+        {aciklama && <p className="mt-1.5 text-sm text-[#ffd7d2]">{aciklama}</p>}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * Bir şeyin olmadığı durum. Düz "kayıt yok" yerine ne yapılacağını söyler.
+ */
+export function BosDurum({
+  simge = "—",
+  baslik,
+  metin,
+  eylem,
+}: {
+  simge?: ReactNode;
+  baslik: string;
+  metin?: string;
+  eylem?: ReactNode;
+}) {
+  return (
+    <div className="grid justify-items-center gap-2 px-5 py-10 text-center">
+      <span aria-hidden className="text-3xl opacity-40">
+        {simge}
+      </span>
+      <p className="font-[family-name:var(--font-data)] text-lg font-bold">{baslik}</p>
+      {metin && <p className="max-w-[46ch] text-sm text-muted-dark">{metin}</p>}
+      {eylem && <div className="mt-2">{eylem}</div>}
+    </div>
+  );
+}
+
+/**
+ * Yükleme iskeleti. Düz "Yükleniyor…" yazısı sayfanın boş kaldığı hissini
+ * veriyordu; gelecek içeriğin kabası gösterilince bekleme kısa hissediliyor.
+ */
+export function Iskelet({ satir = 3 }: { satir?: number }) {
+  return (
+    <div className="grid gap-3" aria-hidden>
+      {Array.from({ length: satir }).map((_, i) => (
+        <div key={i} className="overflow-hidden rounded border border-white/10 bg-ink-3">
+          <div className="h-11 border-b border-white/8 bg-white/4" />
+          <div className="grid gap-2.5 p-4">
+            <div className="h-3.5 w-2/5 animate-pulse rounded-full bg-white/10" />
+            <div className="h-3.5 w-4/5 animate-pulse rounded-full bg-white/8" />
+            <div className="h-3.5 w-3/5 animate-pulse rounded-full bg-white/6" />
+          </div>
+        </div>
+      ))}
+      <span className="sr-only">Yükleniyor</span>
+    </div>
+  );
+}
+
 export function Rozet({ ad, renk }: { ad: string; renk: string }) {
   const parcalar = ad.split(" ").filter(Boolean);
   const harf = (

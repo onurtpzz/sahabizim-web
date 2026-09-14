@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Rakam } from "@/components/admin/ui";
+import { kirliDinle, kirliSayisi } from "@/lib/kirli";
 import { bekleyenIsler, type BekleyenIsler } from "@/lib/admin-veri";
 import { supabase, supabaseHazir } from "@/lib/supabase";
 
@@ -29,6 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [durum, setDurum] = useState<"bekliyor" | "girisli" | "girissiz">("bekliyor");
   const [eposta, setEposta] = useState<string>("");
   const [isler, setIsler] = useState<BekleyenIsler | null>(null);
+  const [kirli, setKirli] = useState(0);
 
   useEffect(() => {
     if (!supabase) return;
@@ -46,6 +48,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (durum === "girissiz" && !girisSayfasi) router.replace("/admin/giris");
   }, [durum, girisSayfasi, router]);
+
+  /**
+   * Kaydedilmemiş değişiklik koruması.
+   *
+   * `beforeunload` sekme kapatma / yenileme / geri tuşunu yakalar. Panel içi
+   * gezinme için menü bağlantıları aşağıda ayrıca soruyor — App Router'da
+   * gezinmeyi iptal edecek bir olay yok, o yüzden tıklamayı kendimiz kesiyoruz.
+   */
+  useEffect(() => kirliDinle(() => setKirli(kirliSayisi())), []);
+
+  useEffect(() => {
+    if (!kirli) return;
+    function sorgula(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", sorgula);
+    return () => window.removeEventListener("beforeunload", sorgula);
+  }, [kirli]);
 
   /**
    * Bekleyen iş sayıları. `yol` bağımlılıkta: sayfa değiştikçe tazeleniyor,
@@ -101,6 +121,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={m.href}
                 href={m.href}
+                onClick={(e) => {
+                  if (m.href === yol || !kirli) return;
+                  const devam = window.confirm(
+                    `Kaydedilmemiş ${kirli} değişiklik var. Sayfadan çıkarsan kaybolur.\n\nYine de çıkılsın mı?`,
+                  );
+                  if (!devam) e.preventDefault();
+                }}
                 className={`rounded-sm border px-3.5 py-2 font-[family-name:var(--font-data)] text-sm font-semibold uppercase tracking-wider transition ${
                   aktif
                     ? "border-brand bg-ink-3 text-white"
@@ -127,6 +154,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </div>
+
+      {kirli > 0 && (
+        <p className="mb-5 rounded border border-gold/45 bg-gold/10 px-4 py-2.5 text-sm text-[#e4efe7]">
+          <span aria-hidden className="mr-2">
+            ●
+          </span>
+          Kaydedilmemiş {kirli} değişiklik var — ilgili satırdaki{" "}
+          <strong>Kaydet</strong> düğmesine basmadan sayfadan ayrılma.
+        </p>
+      )}
+
       {children}
     </Kabuk>
   );

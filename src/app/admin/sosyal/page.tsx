@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Bildirim, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel, Uyari } from "@/components/admin/ui";
 import {
   sosyalEkle,
   sosyalGetir,
@@ -71,7 +71,7 @@ export default function AdminSosyal() {
     await yenile();
   }
 
-  if (yukleniyor) return <p className="text-muted-dark">Yükleniyor…</p>;
+  if (yukleniyor) return <Iskelet satir={2} />;
 
   const yayinda = kayitlar.filter((k) => k.yayinda).length;
 

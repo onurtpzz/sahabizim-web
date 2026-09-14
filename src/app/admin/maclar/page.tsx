@@ -1,8 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alan, Bildirim, Dugme, Girdi, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
+import {
+  Alan,
+  Bildirim,
+  BosDurum,
+  Dugme,
+  Girdi,
+  Iskelet,
+  Panel,
+  TakimSecici,
+  Uyari,
+} from "@/components/admin/ui";
 import { MacGorseli } from "@/components/admin/mac-gorseli";
+import { useKirli } from "@/lib/kirli";
 import { SITE } from "@/lib/site";
 import {
   aktifSezon,
@@ -62,7 +73,7 @@ export default function AdminMaclar() {
     yenile();
   }, []);
 
-  if (yukleniyor) return <p className="text-muted-dark">Yükleniyor…</p>;
+  if (yukleniyor) return <Iskelet satir={3} />;
 
   if (!sezon) {
     return (
@@ -151,11 +162,15 @@ export default function AdminMaclar() {
         }
       >
         {oynanan.length === 0 ? (
-          <p className="p-5 text-sm text-muted-dark">
-            {suzuluyor
-              ? "Bu aramayla eşleşen sonuç yok."
-              : "Henüz maç sonucu girilmedi. Yukarıdan ekleyebilirsin."}
-          </p>
+          <BosDurum
+            simge="⚽"
+            baslik={suzuluyor ? "Eşleşen sonuç yok" : "Henüz sonuç girilmedi"}
+            metin={
+              suzuluyor
+                ? "Arama kutusunu temizleyip tekrar dene."
+                : "Yukarıdaki formdan maç ekleyip skorunu girebilirsin. Skoru boş bırakırsan maç fikstüre düşer."
+            }
+          />
         ) : (
           <>
             <ul className="divide-y divide-white/8">
@@ -212,6 +227,17 @@ function MacSatiri({
   const zamanDegisti = tarih !== ilkTarih || saat !== ilkSaat;
   const degisti = skorDegisti || zamanDegisti;
 
+  // Kaydedilmemiş değişiklik defterine yazılıyor; layout menüden çıkışta soruyor.
+  useKirli(`mac:${mac.id}`, degisti);
+
+  /** Skor kutusundayken Enter — telefondan arka arkaya sonuç girerken hızlı. */
+  function enterIleKaydet(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && degisti && !bekle) {
+      e.preventDefault();
+      kaydet();
+    }
+  }
+
   async function kaydet() {
     // Tek skor girilmesi engelleniyor: eskiden (3, boş) kaydediliyor, maç
     // "oynanacak" kalıyordu. Panel "kaydedildi" diyor, maç puana girmiyor ve
@@ -262,7 +288,11 @@ function MacSatiri({
   }
 
   return (
-    <li className="grid gap-3 p-4 md:grid-cols-[172px_1fr_auto] md:items-center">
+    <li
+      className={`grid gap-3 p-4 md:grid-cols-[172px_1fr_auto] md:items-center ${
+        degisti ? "border-l-[3px] border-l-gold bg-gold/5 pl-[13px] md:pl-[13px]" : ""
+      }`}
+    >
       <div className="grid grid-cols-[1fr_92px] gap-2">
         <Girdi
           aria-label="Maç tarihi"
@@ -281,7 +311,7 @@ function MacSatiri({
       </div>
 
       {/* Mobilde her takım kendi skorunun yanında; masaüstünde klasik karşılaşma dizilimi */}
-      <div className="grid grid-cols-[1fr_60px] items-center gap-2 md:grid-cols-[1fr_56px_16px_56px_1fr]">
+      <div className="grid grid-cols-[1fr_76px] items-center gap-2 md:grid-cols-[1fr_56px_16px_56px_1fr]">
         <span className="truncate font-[family-name:var(--font-data)] font-semibold md:order-1 md:text-right">
           {bilgiler[mac.ev_id]?.ad ?? "?"}
         </span>
@@ -290,7 +320,8 @@ function MacSatiri({
           inputMode="numeric"
           value={ev}
           onChange={(e) => setEv(e.target.value.replace(/\D/g, ""))}
-          className="text-center font-[family-name:var(--font-display)] text-xl md:order-2"
+          onKeyDown={enterIleKaydet}
+          className="h-14 text-center font-[family-name:var(--font-display)] text-3xl md:order-2 md:h-auto md:text-xl"
         />
         <span className="truncate font-[family-name:var(--font-data)] font-semibold md:order-5">
           {bilgiler[mac.dep_id]?.ad ?? "?"}
@@ -300,14 +331,20 @@ function MacSatiri({
           inputMode="numeric"
           value={dep}
           onChange={(e) => setDep(e.target.value.replace(/\D/g, ""))}
-          className="text-center font-[family-name:var(--font-display)] text-xl md:order-4"
+          onKeyDown={enterIleKaydet}
+          className="h-14 text-center font-[family-name:var(--font-display)] text-3xl md:order-4 md:h-auto md:text-xl"
         />
         <span className="hidden text-center text-muted-dark md:order-3 md:block">–</span>
       </div>
 
       <div className="flex justify-end gap-2">
-        <Dugme type="button" onClick={kaydet} disabled={!degisti || bekle}>
-          Kaydet
+        <Dugme
+          type="button"
+          onClick={kaydet}
+          disabled={!degisti || bekle}
+          className={degisti ? "ring-2 ring-gold/70" : ""}
+        >
+          {bekle ? "Kaydediliyor…" : degisti ? "Kaydet ●" : "Kaydet"}
         </Dugme>
         {/* Skor girilmemiş maçta duyuru, girilmişte sonuç görseli çıkar. */}
         <Dugme type="button" tur="ikincil" onClick={() => setGorsel(true)}>

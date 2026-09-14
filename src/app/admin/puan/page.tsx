@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alan, Bildirim, Dugme, Girdi, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
 import {
   aktifSezon,
   devirKaydet,
@@ -53,7 +53,7 @@ export default function AdminPuan() {
     yenile();
   }, []);
 
-  if (yukleniyor) return <p className="text-muted-dark">Yükleniyor…</p>;
+  if (yukleniyor) return <Iskelet satir={3} />;
   if (!sezon) return <Uyari tur="hata">Aktif sezon yok. Önce Sezon sekmesinden başlat.</Uyari>;
 
   const q = arama.trim().toLocaleLowerCase("tr");

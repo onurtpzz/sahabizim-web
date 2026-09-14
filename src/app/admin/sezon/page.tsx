@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Bildirim, Dugme, Girdi, Panel, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Panel, TehlikeliBolge } from "@/components/admin/ui";
 import { sezonlariGetir, sezonuArsivle, yeniSezon, type Sezon } from "@/lib/admin-veri";
 
 export default function AdminSezon() {
@@ -112,13 +112,17 @@ export default function AdminSezon() {
         </div>
       </Panel>
 
-      <Panel baslik="Yeni sezon başlat">
+      <TehlikeliBolge
+        baslik="Tehlikeli bölge — sezonu bitir"
+        aciklama={
+          <>
+            <strong>Bu işlem geri alınamaz.</strong> Mevcut sezon arşive kaldırılır, tüm
+            takımların puanı, galibiyeti ve gol istatistiği sıfırlanır. Geçmiş maç kayıtları
+            eski sezonda kalır. Sezon bittiğinde, yalnızca sezon bittiğinde kullan.
+          </>
+        }
+      >
         <form onSubmit={baslat} className="grid gap-4 p-4">
-          <Uyari tur="hata">
-            <strong>Bu işlem geri alınamaz.</strong> Mevcut sezon arşive kaldırılır, tüm takımların
-            puanı, galibiyeti ve gol istatistiği sıfırlanır. Geçmiş maç kayıtları eski sezonda kalır.
-          </Uyari>
-
           <div className="grid gap-4 sm:grid-cols-2">
             <Alan etiket="Yeni sezon adı">
               <Girdi
@@ -150,7 +154,7 @@ export default function AdminSezon() {
             </Dugme>
           </div>
         </form>
-      </Panel>
+      </TehlikeliBolge>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Bildirim, Dugme, Girdi, Panel, Secim, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel, Secim, Uyari } from "@/components/admin/ui";
 import {
   bugun,
   duyuruEkle,
@@ -54,7 +54,7 @@ export default function AdminDuyurular() {
       />
 
       {yukleniyor ? (
-        <p className="text-muted-dark">Yükleniyor…</p>
+        <Iskelet satir={2} />
       ) : (
         <>
           <Panel baslik="Duyurular" sag={`${duyurular.length} kayıt`}>

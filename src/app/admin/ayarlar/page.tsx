@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Bildirim, Dugme, Girdi, Panel } from "@/components/admin/ui";
+import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel } from "@/components/admin/ui";
+import { useKirli } from "@/lib/kirli";
 import { ayarKaydet, ayarlariGetir } from "@/lib/admin-veri";
 
 type Ayar = { anahtar: string; deger: string | null; aciklama: string | null };
@@ -98,6 +99,9 @@ export default function AdminAyarlar() {
     (a) => (a.deger ?? "") !== (degerler[a.anahtar] ?? ""),
   ).length;
 
+  // Kaydedilmemiş ayarlar da deftere yazılıyor; menüden çıkarken uyarı çıkar.
+  useKirli("ayarlar", degisenSayisi > 0);
+
   async function kaydet(e: React.FormEvent) {
     e.preventDefault();
     setBekle(true);
@@ -124,7 +128,7 @@ export default function AdminAyarlar() {
     : GRUPLAR;
 
   if (ayarlar.length === 0 && !mesaj) {
-    return <p className="text-muted-dark">Yükleniyor…</p>;
+    return <Iskelet satir={2} />;
   }
 
   return (

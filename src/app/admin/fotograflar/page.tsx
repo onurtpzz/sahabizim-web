@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bildirim, Dugme, Panel, Uyari } from "@/components/admin/ui";
+import { Bildirim, Dugme, Iskelet, Panel, Uyari } from "@/components/admin/ui";
 import {
   fotograflariGetir,
   fotografDurumu,
@@ -150,7 +150,7 @@ export default function AdminFotograflar() {
 
   const bekleyenSayisi = sayilar.bekliyor ?? 0;
 
-  if (yukleniyor) return <p className="text-muted-dark">Yükleniyor…</p>;
+  if (yukleniyor) return <Iskelet satir={3} />;
 
   return (
     <div className="grid gap-6">

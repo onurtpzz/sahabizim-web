@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { VeriUyarisi } from "@/components/veri-uyarisi";
 import { rozet } from "@/lib/puan";
 import { SITE } from "@/lib/site";
-import { getMaclar, type FiksturMaci } from "@/lib/veri";
+import { getMaclarSonucu, type FiksturMaci } from "@/lib/veri";
 import { gunBasligi, ligGunu, macSaati } from "@/lib/zaman";
 
 export const revalidate = 60;
@@ -43,7 +44,8 @@ export default async function FiksturSayfasi({
 }: {
   searchParams: Promise<Arama>;
 }) {
-  const [maclar, { sayfa }] = await Promise.all([getMaclar(), searchParams]);
+  const [sonuc, { sayfa }] = await Promise.all([getMaclarSonucu(), searchParams]);
+  const maclar = sonuc.veri;
 
   const oynanacak = maclar.filter((m) => m.durum === "oynanacak" || m.durum === "ertelendi");
   const oynanan = maclar.filter((m) => m.durum === "oynandi" || m.durum === "hukmen");
@@ -64,7 +66,11 @@ export default async function FiksturSayfasi({
         Güncel puan durumunu görmek için tıklayın →
       </Link>
 
-      {maclar.length === 0 ? (
+      {sonuc.durum === "hata" ? (
+        <div className="mt-8">
+          <VeriUyarisi metin="Sunucu veritabanına ulaşamadı, bu yüzden fikstür şu an gösterilemiyor. Eksik bir liste göstermektense hiç göstermemeyi tercih ediyoruz; birkaç dakika içinde kendiliğinden düzelir." />
+        </div>
+      ) : maclar.length === 0 ? (
         <div className="mt-8 rounded border border-line bg-white p-8">
           <h2 className="font-[family-name:var(--font-data)] text-xl font-bold uppercase tracking-wide">
             Henüz maç kaydı yok

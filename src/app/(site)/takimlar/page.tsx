@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { VeriUyarisi } from "@/components/veri-uyarisi";
 import { rozet } from "@/lib/puan";
-import { getPuanDurumu } from "@/lib/veri";
+import { getPuanDurumuSonucu } from "@/lib/veri";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -13,13 +14,19 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function TakimlarSayfasi() {
-  const tablo = await getPuanDurumu();
-  const takimlar = [...tablo].sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
+  const sonuc = await getPuanDurumuSonucu();
+  const takimlar = [...sonuc.veri].sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
 
   return (
     <div className="mx-auto w-full max-w-[1180px] px-5 py-12 md:py-16">
       <p className="eyebrow text-brand">{SITE.sezon} Sezonu</p>
       <h1 className="display mt-2 text-[clamp(2.2rem,6vw,3.4rem)]">Takımlar</h1>
+      {sonuc.durum === "hata" ? (
+        <div className="mt-7">
+          <VeriUyarisi metin="Sunucu veritabanına ulaşamadı, bu yüzden takım listesi şu an gösterilemiyor. Birkaç dakika içinde kendiliğinden düzelir." />
+        </div>
+      ) : (
+        <>
       <p className="mt-3 text-muted">{takimlar.length} takım, alfabetik sırayla.</p>
 
       <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -51,6 +58,8 @@ export default async function TakimlarSayfasi() {
           );
         })}
       </ul>
+        </>
+      )}
     </div>
   );
 }

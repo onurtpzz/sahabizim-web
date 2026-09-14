@@ -64,29 +64,75 @@ function cevir(r: PuanSatiriDB): PuanSatiri & { logoUrl: string | null; takimId:
   };
 }
 
+export type TakimSatiri = PuanSatiri & { logoUrl?: string | null; takimId?: string };
+
 /**
- * Puan durumunu veritabanından okur. Supabase ayarlı değilse veya sorgu
- * başarısız olursa `src/data/takimlar.ts` içindeki yedek veriye döner.
+ * Bir veri okumasının üç ayrı sonucu.
+ *
+ * Daha önce üçü de tek davranışa bağlıydı: hepsinde `src/data/takimlar.ts`
+ * içindeki 07.09.2026 tarihli yedek tabloya düşülüyordu. Sonuç, ziyaretçinin
+ * donmuş rakamları güncel sanmasıydı — 13.09'da tam olarak bu yaşandı.
+ *
+ *   hazir → Veritabanından okundu. Boş dönmesi de geçerli bir cevaptır
+ *           (yeni kurulum, takım eklenmemiş); hata değildir.
+ *   yedek → Supabase hiç ayarlı değil (`.env.local` yok). Yerelde geliştirme
+ *           yapılabilsin diye örnek veri gösterilir.
+ *   hata  → Sorgu reddedildi. Ziyaretçiye veri DEĞİL, görünür bir uyarı
+ *           gösterilmeli. Yanlış veri göstermektense hiç göstermemek yeğdir.
  */
-export const getPuanDurumu = cache(
-  hafizala("puan-durumu", async (): Promise<
-    (PuanSatiri & { logoUrl?: string | null; takimId?: string })[]
-  > => {
-    if (!supabase) return yedekPuanDurumu();
+export type VeriSonucu<T> =
+  | { durum: "hazir"; veri: T }
+  | { durum: "yedek"; veri: T }
+  | { durum: "hata"; veri: T; mesaj: string };
+
+/**
+ * Puan durumu — durum bilgisiyle birlikte. Tabloyu ekrana basan sayfalar
+ * bunu kullanmalı ki `durum === "hata"` olduğunda uyarı gösterebilsinler.
+ *
+ * Not: hata sonucu da `hafizala` süresi boyunca hatırlanır. Kesinti sırasında
+ * her istekte veritabanını yeniden zorlamamak için bu bilinçli.
+ */
+export const getPuanDurumuSonucu = cache(
+  hafizala("puan-durumu", async (): Promise<VeriSonucu<TakimSatiri[]>> => {
+    if (!supabase) return { durum: "yedek", veri: yedekPuanDurumu() };
 
     const { data, error } = await supabase
       .from("puan_durumu")
       .select("*")
       .order("sira");
 
-    if (error || !data?.length) {
-      if (error) console.warn("Puan durumu okunamadı, yedek veri kullanılıyor:", error.message);
-      return yedekPuanDurumu();
+    if (error) {
+      console.error("Puan durumu okunamadı:", error.message);
+      return { durum: "hata", veri: [], mesaj: error.message };
     }
 
-    return (data as PuanSatiriDB[]).map(cevir);
+    return { durum: "hazir", veri: ((data ?? []) as PuanSatiriDB[]).map(cevir) };
   }),
 );
+
+/**
+ * Yalnız satırlar. Hata durumunda BOŞ döner — bilerek: eski yedek tabloya
+ * düşmüyoruz. Tabloyu gösteren sayfalar `getPuanDurumuSonucu()` kullanmalı.
+ */
+export const getPuanDurumu = cache(
+  async (): Promise<TakimSatiri[]> => (await getPuanDurumuSonucu()).veri,
+);
+
+/**
+ * Derleme anında kullanılan takım slug listesi — `generateStaticParams()` ve
+ * `sitemap.ts` için.
+ *
+ * Burası tek istisna: derleme sırasında geçici bir Supabase hatası olursa ve
+ * liste boş dönerse site haritası bütün takım sayfalarını kaybeder, yani
+ * Google'a "bu sayfalar artık yok" demiş oluruz. Adres listesi eski olsa bile
+ * yanlış bilgi taşımaz (sayfa açıldığında veriyi yeniden okur), o yüzden
+ * yalnızca burada yedeğe düşüyoruz.
+ */
+export const getTakimSluglari = cache(async (): Promise<string[]> => {
+  const sonuc = await getPuanDurumuSonucu();
+  const kaynak = sonuc.durum === "hata" ? yedekPuanDurumu() : sonuc.veri;
+  return kaynak.map((t) => t.slug);
+});
 
 /** Slug → takım eşlemesi; tablo başına bir kez kurulur. */
 const getTakimlarSlugaGore = cache(async () => {
@@ -321,18 +367,30 @@ type MacSatiriDB = {
   dep: { ad: string; slug: string; logo_url: string | null } | null;
 };
 
-/** Aktif sezonun maçları — en yeniden eskiye. */
-export const getMaclar = cache(
-  hafizala("maclar", async (): Promise<FiksturMaci[]> => {
-    if (!supabase) return [];
+/**
+ * Aktif sezonun maçları — en yeniden eskiye, durum bilgisiyle.
+ *
+ * Eskiden hata anında sessizce `[]` dönüyordu: fikstür "henüz maç kaydı yok"
+ * diyor, haftanın özeti kayboluyordu ve kimse sebebini bilmiyordu. Artık
+ * gerçekten boş olan sezon ile okunamayan sezon ayrı.
+ */
+export const getMaclarSonucu = cache(
+  hafizala("maclar", async (): Promise<VeriSonucu<FiksturMaci[]>> => {
+    if (!supabase) return { durum: "yedek", veri: [] };
 
-    const { data: sezon } = await supabase
+    const { data: sezon, error: sezonHatasi } = await supabase
       .from("sezonlar")
       .select("id")
       .eq("aktif", true)
       .limit(1);
+    if (sezonHatasi) {
+      console.error("Aktif sezon okunamadı:", sezonHatasi.message);
+      return { durum: "hata", veri: [], mesaj: sezonHatasi.message };
+    }
+
+    // Aktif sezon yoksa bu bir hata değil: sezon arası ya da yeni kurulum.
     const sezonId = sezon?.[0]?.id;
-    if (!sezonId) return [];
+    if (!sezonId) return { durum: "hazir", veri: [] };
 
     /**
      * DİKKAT — Supabase tek sorguda en fazla 1000 satır döndürür ve fazlasını
@@ -359,8 +417,9 @@ export const getMaclar = cache(
         .range(bas, bas + SAYFA - 1);
 
       if (error) {
-        console.warn("Maçlar okunamadı:", error.message);
-        break;
+        // Yarım listeyle devam etmek, eksik fikstürü tam sanmaktan kötüdür.
+        console.error("Maçlar okunamadı:", error.message);
+        return { durum: "hata", veri: [], mesaj: error.message };
       }
       if (!data?.length) break;
 
@@ -368,18 +427,27 @@ export const getMaclar = cache(
       if (data.length < SAYFA) break;
     }
 
-    return satirlar
-      .filter((m) => m.ev && m.dep)
-      .map((m) => ({
-        id: m.id,
-        tarih: m.oynanma,
-        durum: m.durum,
-        evSkor: m.ev_skor,
-        depSkor: m.dep_skor,
-        ev: { ad: m.ev!.ad, slug: m.ev!.slug, logoUrl: m.ev!.logo_url },
-        dep: { ad: m.dep!.ad, slug: m.dep!.slug, logoUrl: m.dep!.logo_url },
-      }));
+    return {
+      durum: "hazir",
+      veri: satirlar
+        .filter((m) => m.ev && m.dep)
+        .map((m) => ({
+          id: m.id,
+          tarih: m.oynanma,
+          durum: m.durum,
+          evSkor: m.ev_skor,
+          depSkor: m.dep_skor,
+          ev: { ad: m.ev!.ad, slug: m.ev!.slug, logoUrl: m.ev!.logo_url },
+          dep: { ad: m.dep!.ad, slug: m.dep!.slug, logoUrl: m.dep!.logo_url },
+        })),
+    };
   }),
+);
+
+/** Yalnız maçlar. Hata durumunda boş döner; fikstür sayfası uyarıyı
+ *  `getMaclarSonucu()` üzerinden gösteriyor. */
+export const getMaclar = cache(
+  async (): Promise<FiksturMaci[]> => (await getMaclarSonucu()).veri,
 );
 
 /**

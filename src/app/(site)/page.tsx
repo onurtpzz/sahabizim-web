@@ -5,13 +5,14 @@ import { PuanTablosu } from "@/components/puan-tablosu";
 import { Reveal } from "@/components/reveal";
 import { Sayac } from "@/components/sayac";
 import { SosyalIcerikler } from "@/components/sosyal-icerikler";
+import { VeriUyarisi } from "@/components/veri-uyarisi";
 import { haftaninOzeti } from "@/lib/hafta";
 import {
   getGaleri,
   getMaclar,
   getIcerik,
   getLigOzeti,
-  getPuanDurumu,
+  getPuanDurumuSonucu,
   getSlotGorseli,
   getSosyalIcerikler,
 } from "@/lib/veri";
@@ -27,9 +28,9 @@ const YEDEK_GALERI = [
 ];
 
 export default async function Anasayfa() {
-  const [satirlar, ozet, icerik, heroGorsel, kampanyaGorsel, kampanyaYan, galeri, sosyal] =
+  const [sonuc, ozet, icerik, heroGorsel, kampanyaGorsel, kampanyaYan, galeri, sosyal] =
     await Promise.all([
-    getPuanDurumu(),
+    getPuanDurumuSonucu(),
     getLigOzeti(),
     getIcerik(),
     getSlotGorseli("hero", "/images/hero-saha.jpg"),
@@ -39,8 +40,12 @@ export default async function Anasayfa() {
     getSosyalIcerikler(6),
   ]);
 
+  const satirlar = sonuc.veri;
+  // Veri okunamadıysa rakam basmıyoruz: "0 takım, 0 gol" güncel sanılabilir.
+  const hataVar = sonuc.durum === "hata";
+
   const maclar = await getMaclar();
-  const hafta = haftaninOzeti(maclar, satirlar, ozet.takimSayisi);
+  const hafta = hataVar ? null : haftaninOzeti(maclar, satirlar, ozet.takimSayisi);
 
   return (
     <>
@@ -61,7 +66,7 @@ export default async function Anasayfa() {
         <div className="relative mx-auto w-full max-w-[1180px] px-5 py-14 md:py-24">
           <Reveal>
             <p className="eyebrow text-brand-lite">
-              {SITE.sezon} Sezonu · {ozet.takimSayisi} Takım
+              {SITE.sezon} Sezonu{hataVar ? "" : ` · ${ozet.takimSayisi} Takım`}
             </p>
             <h1 className="display mt-3 text-[clamp(2.75rem,9vw,6.5rem)]">
               {icerik.hero_baslik}
@@ -86,6 +91,7 @@ export default async function Anasayfa() {
           </Reveal>
         </div>
 
+        {!hataVar && (
         <div className="relative border-t border-white/15 bg-black/25">
           <dl className="mx-auto grid w-full max-w-[1180px] grid-cols-2 px-5 md:grid-cols-4">
             {[
@@ -110,6 +116,7 @@ export default async function Anasayfa() {
             ))}
           </dl>
         </div>
+        )}
       </section>
 
       {/* HAFTANIN ÖZETİ */}
@@ -130,7 +137,11 @@ export default async function Anasayfa() {
           </Link>
         </Reveal>
         <Reveal>
-          <PuanTablosu satirlar={satirlar} baslangicAdet={12} />
+          {hataVar ? (
+            <VeriUyarisi />
+          ) : (
+            <PuanTablosu satirlar={satirlar} baslangicAdet={12} />
+          )}
         </Reveal>
       </section>
 

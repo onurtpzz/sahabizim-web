@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getArsivSezonlari, getPuanDurumu } from "@/lib/veri";
+import { getArsivSezonlari, getTakimSluglari } from "@/lib/veri";
 import { SITE } from "@/lib/site";
 
 export const revalidate = 3600;
@@ -24,9 +24,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: s.priority,
   }));
 
-  const tablo = await getPuanDurumu();
-  const takimlar = tablo.map((t) => ({
-    url: `${SITE.url}/takim/${t.slug}`,
+  // Hata anında yedek slug listesine düşer — site haritası hiçbir koşulda
+  // takım sayfalarını kaybetmemeli (bkz. getTakimSluglari).
+  const sluglar = await getTakimSluglari();
+  const takimlar = sluglar.map((slug) => ({
+    url: `${SITE.url}/takim/${slug}`,
     lastModified: simdi,
     priority: 0.6,
   }));

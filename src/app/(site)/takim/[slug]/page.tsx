@@ -5,11 +5,14 @@ import { notFound } from "next/navigation";
 import { TakimFotograflari } from "@/components/takim-fotograflari";
 import { TakimMaclari } from "@/components/takim-maclari";
 import { TakimPaylas } from "@/components/takim-paylas";
+import { VeriUyarisi } from "@/components/veri-uyarisi";
 import { rozet } from "@/lib/puan";
 import {
   getPuanDurumu,
+  getPuanDurumuSonucu,
   getTakimFotograflari,
   getTakimMaclari,
+  getTakimSluglari,
 } from "@/lib/veri";
 import { SITE } from "@/lib/site";
 import type { MacSonucu } from "@/lib/types";
@@ -18,8 +21,8 @@ export const revalidate = 60;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const tablo = await getPuanDurumu();
-  return tablo.map((t) => ({ slug: t.slug }));
+  const sluglar = await getTakimSluglari();
+  return sluglar.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -66,7 +69,22 @@ export default async function TakimSayfasi({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const tablo = await getPuanDurumu();
+  const sonuc = await getPuanDurumuSonucu();
+
+  // Veritabanı okunamadıysa 404 verme: sayfa yok değil, veri yok. 404 Google'a
+  // "bu takım kalktı" der ve sayfa dizinden düşer.
+  if (sonuc.durum === "hata") {
+    return (
+      <div className="mx-auto w-full max-w-[1180px] px-5 py-16">
+        <h1 className="display text-[clamp(1.9rem,5vw,3rem)]">Takım sayfası</h1>
+        <div className="mt-6">
+          <VeriUyarisi metin="Sunucu veritabanına ulaşamadı, bu yüzden takımın güncel istatistikleri şu an gösterilemiyor. Birkaç dakika içinde kendiliğinden düzelir." />
+        </div>
+      </div>
+    );
+  }
+
+  const tablo = sonuc.veri;
   const sirada = tablo.findIndex((t) => t.slug === slug);
   const takim = tablo[sirada];
   if (!takim) notFound();

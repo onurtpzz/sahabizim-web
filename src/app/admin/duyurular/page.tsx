@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel, Secim, Uyari } from "@/components/admin/ui";
+import { useKirli } from "@/lib/kirli";
 import {
   bugun,
   duyuruEkle,
@@ -213,6 +214,25 @@ function Satir({
   const [sira, setSira] = useState(String(kayit.sira));
   const [bekle, setBekle] = useState(false);
 
+  const degisti =
+    acik &&
+    (baslik !== kayit.baslik ||
+      metin !== kayit.metin ||
+      tarih !== (kayit.tarih ?? "") ||
+      sira !== String(kayit.sira));
+
+  useKirli(`duyuru:${kayit.id}`, degisti);
+
+  /** Düzenleme panelini kapatır; kaydedilmemiş değişiklik varsa önce sorar. */
+  function kapat() {
+    if (degisti && !window.confirm("Kaydedilmemiş değişiklikler var. Kapatılsın mı?")) return;
+    setBaslik(kayit.baslik);
+    setMetin(kayit.metin);
+    setTarih(kayit.tarih ?? "");
+    setSira(String(kayit.sira));
+    setAcik(false);
+  }
+
   async function kaydet() {
     setBekle(true);
     try {
@@ -272,7 +292,7 @@ function Satir({
         )}
 
         <div className="ml-auto flex flex-wrap gap-2">
-          <Dugme type="button" tur="ikincil" onClick={() => setAcik((v) => !v)}>
+          <Dugme type="button" tur="ikincil" onClick={() => (acik ? kapat() : setAcik(true))}>
             {acik ? "Kapat" : "Düzenle"}
           </Dugme>
           <Dugme type="button" tur="ikincil" onClick={() => degistir({ sabit: !kayit.sabit })}>

@@ -237,6 +237,141 @@ export function Iskelet({ satir = 3 }: { satir?: number }) {
   );
 }
 
+/**
+ * Dosya seçtiren etiket-düğme.
+ *
+ * `<input type="file" className="hidden">` kalıbı kullanılıyordu; `hidden`
+ * `display:none` demek ve `display:none` bir öğe ODAKLANAMAZ. Yani takım
+ * logosu ve site görselleri klavyeyle hiç yüklenemiyordu. Burada girdi görsel
+ * olarak gizli ama odaklanabilir (`sr-only` kalıbı); etiket de odak halkasını
+ * gösteriyor ve Enter/Space ile açılıyor.
+ */
+export function DosyaSec({
+  etiket,
+  accept,
+  onSec,
+  disabled,
+  tur = "birincil",
+  className = "",
+}: {
+  etiket: ReactNode;
+  accept: string;
+  onSec: (dosya: File) => void;
+  disabled?: boolean;
+  tur?: "birincil" | "ikincil";
+  className?: string;
+}) {
+  const girdi = useRef<HTMLInputElement>(null);
+
+  const stil =
+    tur === "birincil"
+      ? "bg-brand text-white hover:bg-[#15c244]"
+      : "border border-white/20 text-[#cfe0d5] hover:border-brand-lite hover:text-white";
+
+  return (
+    <label
+      className={`inline-flex items-center rounded-sm px-4 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider uppercase transition focus-within:ring-2 focus-within:ring-brand-lite focus-within:outline-none ${
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+      } ${stil} ${className}`}
+      onKeyDown={(e) => {
+        // Etiketin kendisi odaklanmaz; odak içerideki girdide. Yine de
+        // Enter/Space burada da yakalanıyor ki davranış düğme gibi olsun.
+        if (disabled) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          girdi.current?.click();
+        }
+      }}
+    >
+      {etiket}
+      <input
+        ref={girdi}
+        type="file"
+        accept={accept}
+        disabled={disabled}
+        className="sr-only"
+        onChange={(e) => {
+          const d = e.target.files?.[0];
+          if (d) onSec(d);
+          e.target.value = "";
+        }}
+      />
+    </label>
+  );
+}
+
+/**
+ * Kalıcı pencere (modal).
+ *
+ * Panelde iki ayrı pencere kalıbı vardı; biri `role="dialog"` bile taşımıyordu,
+ * ikisinde de Esc çalışmıyor ve odak arkadaki sayfada dolaşmaya devam ediyordu.
+ * Tek kalıpta topluyoruz: Esc kapatır, açılışta ilk odaklanabilir öğeye geçer,
+ * kapanınca odak geldiği düğmeye döner, arkadaki sayfa kaydırılmaz.
+ */
+export function Pencere({
+  baslik,
+  kapat,
+  children,
+  genislik = "max-w-md",
+}: {
+  baslik: string;
+  kapat: () => void;
+  children: ReactNode;
+  genislik?: string;
+}) {
+  const kutu = useRef<HTMLDivElement>(null);
+  const kapatRef = useRef(kapat);
+  useEffect(() => {
+    kapatRef.current = kapat;
+  });
+
+  useEffect(() => {
+    const oncekiOdak = document.activeElement as HTMLElement | null;
+    const oncekiTasma = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    kutu.current
+      ?.querySelector<HTMLElement>(
+        'input:not([type="hidden"]), textarea, select, button, [href], [tabindex]:not([tabindex="-1"])',
+      )
+      ?.focus();
+
+    function tus(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        kapatRef.current();
+      }
+    }
+    document.addEventListener("keydown", tus);
+
+    return () => {
+      document.removeEventListener("keydown", tus);
+      document.body.style.overflow = oncekiTasma;
+      oncekiOdak?.focus?.();
+    };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-5"
+      onMouseDown={(e) => {
+        // Yalnız zemine basıldıysa kapat; içeride başlayan sürüklemeler değil.
+        if (e.target === e.currentTarget) kapat();
+      }}
+    >
+      <div
+        ref={kutu}
+        role="dialog"
+        aria-modal="true"
+        aria-label={baslik}
+        className={`w-full rounded border border-white/15 bg-ink-3 ${genislik}`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function Rozet({ ad, renk }: { ad: string; renk: string }) {
   const parcalar = ad.split(" ").filter(Boolean);
   const harf = (

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
+import { useKirli } from "@/lib/kirli";
 import {
   aktifSezon,
   devirKaydet,
@@ -363,6 +364,10 @@ function TabloSatiri({
   }, [baslangic]);
 
   const degisti = ALANLAR.some((a) => degerler[a.anahtar] !== baslangic[a.anahtar]);
+
+  // Bu ekran altı kutuluk elle veri girişi — kaydedilmeden gidilirse en çok
+  // burada canı yanar. Menü çıkışta soruyor (bkz. lib/kirli.ts).
+  useKirli(`puan:${takim.id}`, degisti);
   const sayi = (k: AlanAnahtari) => Number(degerler[k]) || 0;
 
   const yeniPuan = sayi("g") * 3 + sayi("b") + puanSapmasi;

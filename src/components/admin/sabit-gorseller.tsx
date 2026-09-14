@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Dugme, Panel } from "@/components/admin/ui";
+import { DosyaSec, Dugme, Panel } from "@/components/admin/ui";
 import {
   dosyaYukle,
-  gorselEkle,
-  gorselSil,
   gorselleriGetir,
+  slotGorseliDegistir,
+  slotGorseliKaldir,
   type GorselKaydi,
 } from "@/lib/admin-veri";
 
@@ -51,7 +51,8 @@ export function SabitGorseller({ bildir }: { bildir: Bildir }) {
     setIslemde(slot);
     try {
       const url = await dosyaYukle(dosya, `slot/${slot}`);
-      await gorselEkle({ url, slot, albom: null, alt_metin: "", baslik: null });
+      // Slot başına tek kayıt: yeni görsel eklenip eskiler siliniyor.
+      await slotGorseliDegistir(slot, url);
       bildir({ tur: "basari", metin: "Görsel yüklendi. Sitede görünmesi bir dakikayı bulabilir." });
       await yenile();
     } catch (e) {
@@ -60,11 +61,13 @@ export function SabitGorseller({ bildir }: { bildir: Bildir }) {
     setIslemde(null);
   }
 
-  async function kaldir(g: GorselKaydi, ad: string) {
+  async function kaldir(slot: string, ad: string) {
     if (!window.confirm(`"${ad}" kaldırılsın mı? Site varsayılan görsele döner.`)) return;
-    setIslemde(g.slot ?? g.id);
+    setIslemde(slot);
     try {
-      await gorselSil(g.id);
+      // O slotun TÜM kayıtları siliniyor; yalnız en yenisi silinseydi bir
+      // önceki fotoğraf yayına geri dönerdi.
+      await slotGorseliKaldir(slot);
       bildir({ tur: "basari", metin: "Görsel kaldırıldı, varsayılana dönüldü." });
       await yenile();
     } catch (e) {
@@ -90,7 +93,7 @@ export function SabitGorseller({ bildir }: { bildir: Bildir }) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={guncel.url} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="grid h-full place-items-center text-xs text-white/35">
+                  <span className="grid h-full place-items-center text-xs text-muted-dark">
                     Varsayılan görsel
                   </span>
                 )}
@@ -100,37 +103,25 @@ export function SabitGorseller({ bildir }: { bildir: Bildir }) {
                 <p className="font-[family-name:var(--font-data)] text-lg font-bold">{s.ad}</p>
                 <p className="text-sm text-muted-dark">{s.tavsiye}</p>
                 {guncel?.olusturuldu && (
-                  <p className="mt-1 text-xs text-white/35">
+                  <p className="mt-1 text-xs text-muted-dark">
                     Yüklenme: {new Date(guncel.olusturuldu).toLocaleDateString("tr-TR")}
                   </p>
                 )}
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <label
-                  className={`rounded-sm bg-brand px-4 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider text-white uppercase ${
-                    mesgul ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-[#15c244]"
-                  }`}
-                >
-                  {mesgul ? "Yükleniyor…" : guncel ? "Değiştir" : "Yükle"}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    disabled={mesgul}
-                    onChange={(e) => {
-                      const d = e.target.files?.[0];
-                      if (d) yukle(d, s.deger);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
+                <DosyaSec
+                  etiket={mesgul ? "Yükleniyor…" : guncel ? "Değiştir" : "Yükle"}
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={mesgul}
+                  onSec={(d) => yukle(d, s.deger)}
+                />
                 {guncel && (
                   <Dugme
                     type="button"
                     tur="tehlike"
                     disabled={mesgul}
-                    onClick={() => kaldir(guncel, s.ad)}
+                    onClick={() => kaldir(s.deger, s.ad)}
                   >
                     Kaldır
                   </Dugme>

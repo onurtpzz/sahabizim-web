@@ -31,6 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isler, setIsler] = useState<BekleyenIsler | null>(null);
   const [kirli, setKirli] = useState(0);
   const navRef = useRef<HTMLElement>(null);
+  const sonOkuma = useRef(0);
 
   useEffect(() => {
     if (!supabase) return;
@@ -96,7 +97,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (durum !== "girisli") return;
     let iptal = false;
-    async function oku() {
+
+    async function oku(zorla = false) {
+      // Sekme geçişi panelde en sık yapılan şey; her geçişte 4 istek atmak
+      // yerine 30 saniye içinde okunmuşsa tekrar sorulmuyor. Sekmeye geri
+      // dönüldüğünde zorla tazeleniyor.
+      const simdi = Date.now();
+      if (!zorla && simdi - sonOkuma.current < 30_000) return;
+      sonOkuma.current = simdi;
       try {
         const i = await bekleyenIsler();
         if (!iptal) setIsler(i);
@@ -104,11 +112,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         /* rozet ikincil bilgi — okunamazsa panel yine de çalışsın */
       }
     }
+
     oku();
-    window.addEventListener("focus", oku);
+    const odaklan = () => oku(true);
+    window.addEventListener("focus", odaklan);
     return () => {
       iptal = true;
-      window.removeEventListener("focus", oku);
+      window.removeEventListener("focus", odaklan);
     };
   }, [durum, yol]);
 

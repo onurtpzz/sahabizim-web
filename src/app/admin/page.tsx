@@ -6,7 +6,7 @@ import { Iskelet, Panel, Uyari } from "@/components/admin/ui";
 import {
   aktifSezon,
   bekleyenIsler,
-  maclariGetir,
+  sezonSayilari,
   takimlariGetir,
   type BekleyenIsler,
 } from "@/lib/admin-veri";
@@ -93,9 +93,9 @@ export default function AdminOzet() {
     (async () => {
       try {
         const sezon = await aktifSezon();
-        const [takimlar, maclar, bekleyenler] = await Promise.all([
+        const [takimlar, mac, bekleyenler] = await Promise.all([
           takimlariGetir(),
-          sezon ? maclariGetir(sezon.id) : Promise.resolve([]),
+          sezon ? sezonSayilari(sezon.id) : Promise.resolve({ oynanan: 0, sirada: 0 }),
           bekleyenIsler(),
         ]);
         setIsler(bekleyenler);
@@ -103,8 +103,8 @@ export default function AdminOzet() {
           sezon: sezon?.ad ?? "Aktif sezon yok",
           takim: takimlar.length,
           aktifTakim: takimlar.filter((t) => t.aktif).length,
-          oynanan: maclar.filter((m) => m.durum === "oynandi" || m.durum === "hukmen").length,
-          bekleyen: maclar.filter((m) => m.durum === "oynanacak").length,
+          oynanan: mac.oynanan,
+          bekleyen: mac.sirada,
         });
       } catch (e) {
         setHata(e instanceof Error ? e.message : "Veriler okunamadı.");
@@ -200,7 +200,7 @@ export default function AdminOzet() {
               <dt className="mt-1 font-[family-name:var(--font-data)] text-xs uppercase tracking-[0.14em] text-muted-dark">
                 {k.l}
               </dt>
-              <p className="mt-0.5 text-xs text-white/35">{k.alt}</p>
+              <p className="mt-0.5 text-xs text-muted-dark">{k.alt}</p>
             </div>
           ))}
         </dl>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Dugme } from "@/components/admin/ui";
+import { Dugme, Pencere } from "@/components/admin/ui";
 import { LIG_SAAT_DILIMI, ligSaati } from "@/lib/zaman";
 
 /**
@@ -402,7 +402,9 @@ export function MacGorseli({
           ? `sahabizim-mac-${temiz(mac.evAd)}-${temiz(mac.depAd)}.png`
           : `sahabizim-${temiz(mac.evAd)}-${mac.evSkor}-${mac.depSkor}-${temiz(mac.depAd)}.png`;
         a.click();
-        URL.revokeObjectURL(url);
+        // İptal etmeyi bir tur geciktiriyoruz: bazı tarayıcılarda `click()`
+        // hemen ardından iptal edilirse indirme hiç başlamıyor.
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
       }, "image/png");
     } catch {
       setHata(
@@ -412,20 +414,16 @@ export function MacGorseli({
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={
+    <Pencere
+      baslik={
         mac.evSkor === null || mac.depSkor === null
           ? "Yaklaşan maç duyuru görseli"
           : "Maç sonucu görseli"
       }
-      className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) kapat();
-      }}
+      kapat={kapat}
+      genislik="max-w-[520px]"
     >
-      <div className="grid max-h-full w-full max-w-[520px] gap-4 overflow-y-auto rounded border border-white/15 bg-ink-3 p-5">
+      <div className="grid gap-4 p-5">
         <div className="flex items-center gap-3">
           <h2 className="font-[family-name:var(--font-data)] text-sm tracking-[0.12em] text-[#cfe0d5] uppercase">
             Instagram görseli · 1080×1080
@@ -468,6 +466,6 @@ export function MacGorseli({
           kullanılır.
         </p>
       </div>
-    </div>
+    </Pencere>
   );
 }

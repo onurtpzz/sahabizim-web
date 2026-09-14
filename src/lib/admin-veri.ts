@@ -247,6 +247,44 @@ export async function gorselleriGetir(): Promise<GorselKaydi[]> {
   return (data ?? []) as GorselKaydi[];
 }
 
+/**
+ * Sabit yerleşimli (slot) görseli değiştirir: yeni kaydı ekler, o slotun eski
+ * kayıtlarını siler.
+ *
+ * Neden: her yükleme yeni satır açıyor, eskisi duruyordu. Panel ve site "o
+ * slotun en yenisini" gösterdiği için sorun görünmüyordu — ta ki "Kaldır"a
+ * basılana kadar: yalnız en yeni satır silindiği için BİR ÖNCEKİ FOTOĞRAF
+ * yayına geri dönüyor, ama kullanıcıya "varsayılana dönüldü" deniyordu.
+ *
+ * Sıra önemli: önce ekle, sonra sil. Tersi olsaydı ekleme başarısız olunca
+ * slot tamamen boş kalırdı.
+ */
+export async function slotGorseliDegistir(slot: string, url: string) {
+  const { data, error } = await db()
+    .from("gorseller")
+    .insert({ url, slot, albom: null, alt_metin: "", baslik: null, sira: 0, yayinda: true })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  const { error: silHatasi } = await db()
+    .from("gorseller")
+    .delete()
+    .eq("slot", slot)
+    .neq("id", data.id);
+
+  // Eski kayıtlar silinemezse yeni görsel yine de yayında (en yenisi kazanıyor).
+  // Yüklemeyi başarısız saymıyoruz, sadece not düşüyoruz.
+  if (silHatasi) console.warn("Eski slot kayıtları silinemedi:", silHatasi.message);
+}
+
+/** Slotun TÜM kayıtlarını siler — site varsayılan görsele döner. */
+export async function slotGorseliKaldir(slot: string) {
+  const { data, error } = await db().from("gorseller").delete().eq("slot", slot).select("id");
+  if (error) throw error;
+  return data?.length ?? 0;
+}
+
 export async function gorselEkle(kayit: {
   url: string;
   slot: string | null;
@@ -370,6 +408,40 @@ export type BekleyenIsler = {
   /** Okunmamış iletişim/katılım talebi. */
   talep: number;
 };
+
+/**
+ * Özet ekranındaki sezon sayıları. `maclariGetir` ile tüm sezonu indirip
+ * uzunluk saymak yerine iki sayım sorgusu — sezon ilerledikçe o liste binleri
+ * buluyor ve panelin açılış maliyeti oluyordu.
+ */
+export async function sezonSayilari(sezonId: string) {
+  const sayim = async (calis: () => PromiseLike<{ count: number | null }>) => {
+    try {
+      return (await calis()).count ?? 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const [oynanan, sirada] = await Promise.all([
+    sayim(() =>
+      db()
+        .from("maclar")
+        .select("id", { count: "exact", head: true })
+        .eq("sezon_id", sezonId)
+        .in("durum", ["oynandi", "hukmen"]),
+    ),
+    sayim(() =>
+      db()
+        .from("maclar")
+        .select("id", { count: "exact", head: true })
+        .eq("sezon_id", sezonId)
+        .eq("durum", "oynanacak"),
+    ),
+  ]);
+
+  return { oynanan, sirada };
+}
 
 export async function bekleyenIsler(): Promise<BekleyenIsler> {
   const sezon = await aktifSezon().catch(() => null);

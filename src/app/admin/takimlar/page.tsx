@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alan, Bildirim, Dugme, Girdi, Panel, Rozet, Uyari } from "@/components/admin/ui";
+import { Alan, Bildirim, DosyaSec, Dugme, Girdi, Panel, Pencere, Rozet, Uyari } from "@/components/admin/ui";
+import { useKirli } from "@/lib/kirli";
 import { rozet } from "@/lib/puan";
 import {
   dosyaYukle,
@@ -149,19 +150,13 @@ export default function AdminTakimlar() {
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex flex-wrap justify-end gap-2">
-                      <label className="cursor-pointer rounded-sm border border-white/20 px-3 py-1.5 text-xs uppercase tracking-wider text-[#cfe0d5] hover:border-brand-lite hover:text-white">
-                        Logo
-                        <input
-                          type="file"
-                          accept="image/png,image/svg+xml,image/webp,image/jpeg"
-                          className="hidden"
-                          onChange={(e) => {
-                            const d = e.target.files?.[0];
-                            if (d) logoYukle(t, d);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
+                      <DosyaSec
+                        tur="ikincil"
+                        etiket="Logo"
+                        accept="image/png,image/svg+xml,image/webp,image/jpeg"
+                        onSec={(d) => logoYukle(t, d)}
+                        className="px-3 py-1.5 text-xs"
+                      />
                       <button
                         type="button"
                         onClick={() => setDuzenlenen(t)}
@@ -245,6 +240,19 @@ function DuzenlePenceresi({
   const [telefon, setTelefon] = useState(takim.telefon ?? "");
   const [hata, setHata] = useState("");
 
+  const degisti =
+    ad !== takim.ad ||
+    yetkili !== (takim.yetkili ?? "") ||
+    telefon !== (takim.telefon ?? "");
+
+  useKirli(`takim:${takim.id}`, degisti);
+
+  /** Pencereyi kapatır; kaydedilmemiş değişiklik varsa önce sorar. */
+  function vazgec() {
+    if (degisti && !window.confirm("Kaydedilmemiş değişiklikler var. Kapatılsın mı?")) return;
+    kapat();
+  }
+
   async function kaydet(e: React.FormEvent) {
     e.preventDefault();
     try {
@@ -261,11 +269,8 @@ function DuzenlePenceresi({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-5">
-      <form
-        onSubmit={kaydet}
-        className="w-full max-w-md rounded border border-white/15 bg-ink-3 p-6"
-      >
+    <Pencere baslik="Takımı düzenle" kapat={vazgec}>
+      <form onSubmit={kaydet} className="p-6">
         <h2 className="display text-2xl">Takımı düzenle</h2>
         <div className="mt-5 grid gap-4">
           <Alan etiket="Takım adı">
@@ -278,17 +283,17 @@ function DuzenlePenceresi({
             <Girdi id="d-telefon" value={telefon} onChange={(e) => setTelefon(e.target.value)} />
           </Alan>
           {hata && <Uyari tur="hata">{hata}</Uyari>}
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-muted-dark">
             Adres: /takim/{slugla(ad)} — takım adını değiştirirsen eski adres çalışmaz.
           </p>
         </div>
         <div className="mt-6 flex justify-end gap-3">
-          <Dugme type="button" tur="ikincil" onClick={kapat}>
+          <Dugme type="button" tur="ikincil" onClick={vazgec}>
             Vazgeç
           </Dugme>
           <Dugme type="submit">Kaydet</Dugme>
         </div>
       </form>
-    </div>
+    </Pencere>
   );
 }

@@ -6,11 +6,12 @@ import { useKirli } from "@/lib/kirli";
 import { rozet } from "@/lib/puan";
 import {
   dosyaYukle,
+  slugla,
   takimEkle,
   takimGuncelle,
+  takimLogosuKaydet,
   takimSil,
   takimlariGetir,
-  slugla,
   type Takim,
 } from "@/lib/admin-veri";
 
@@ -56,8 +57,12 @@ export default function AdminTakimlar() {
   async function logoYukle(takim: Takim, dosya: File) {
     setMesaj(null);
     try {
-      const url = await dosyaYukle(dosya, `logolar/${takim.slug}`);
-      await takimGuncelle(takim.id, { logo_url: url });
+      // Armalarda SVG de kabul ediliyor (çoğu logo öyle geliyor).
+      const url = await dosyaYukle(dosya, `logolar/${takim.slug}`, {
+        turler: ["image/jpeg", "image/png", "image/webp", "image/svg+xml"],
+      });
+      // Eski arma dosyasını da siliyor; `takimGuncelle` onu kovada bırakıyordu.
+      await takimLogosuKaydet(takim.id, url);
       setMesaj({ tur: "basari", metin: `${takim.ad} logosu yüklendi.` });
       await yenile();
     } catch (e) {

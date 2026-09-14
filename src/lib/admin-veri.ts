@@ -104,6 +104,22 @@ export async function takimEkle(ad: string, yetkili: string, telefon: string) {
   if (error) throw error;
 }
 
+/**
+ * Takım armasını değiştirir ve ESKİ arma dosyasını depodan siler.
+ *
+ * `takimGuncelle` ile doğrudan `logo_url` yazıldığında eski dosya kovada
+ * kalıyordu; her logo değişikliği bir yetim dosya bırakıyordu.
+ */
+export async function takimLogosuKaydet(id: string, yeniUrl: string) {
+  const { data: eski } = await db().from("takimlar").select("logo_url").eq("id", id).single();
+
+  const { error } = await db().from("takimlar").update({ logo_url: yeniUrl }).eq("id", id);
+  if (error) throw error;
+
+  const eskiUrl = eski?.logo_url as string | null | undefined;
+  if (eskiUrl && eskiUrl !== yeniUrl) await dosyalariSil([eskiUrl]);
+}
+
 export async function takimGuncelle(id: string, degisiklik: Partial<Takim>) {
   const { error } = await db().from("takimlar").update(degisiklik).eq("id", id);
   if (error) throw error;
@@ -119,8 +135,30 @@ export async function takimSil(id: string) {
       `Bu takımın ${count} maç kaydı var. Önce maçları sil, ya da takımı silmek yerine pasife al.`,
     );
   }
+  // Takımın fotoğraf kayıtları veritabanında cascade ile siliniyor ama
+  // dosyaları kovada kalıyordu; yolları silmeden önce topluyoruz.
+  const { data: fotograflar } = await db()
+    .from("takim_fotograflari")
+    .select("dosya_yolu, durum")
+    .eq("takim_id", id);
+
+  const { data: takim } = await db().from("takimlar").select("logo_url").eq("id", id).single();
+
   const { error } = await db().from("takimlar").delete().eq("id", id);
   if (error) throw error;
+
+  await dosyalariSil([takim?.logo_url as string | null]);
+
+  const yollar = (fotograflar ?? []) as { dosya_yolu: string | null; durum: string }[];
+  for (const kova of [FOTO_KOVA, FOTO_BEKLEYEN_KOVA]) {
+    const liste = yollar
+      .filter((f) => f.dosya_yolu && (kova === FOTO_KOVA) === (f.durum === "onayli"))
+      .map((f) => f.dosya_yolu as string);
+    if (liste.length) {
+      const { error: e } = await db().storage.from(kova).remove(liste);
+      if (e) console.warn("Takım fotoğraf dosyaları silinemedi:", e.message);
+    }
+  }
 }
 
 // ----------------------------------------------------------------- maçlar
@@ -230,12 +268,93 @@ export async function macSil(id: string) {
 // --------------------------------------------------------------- görseller
 const KOVA = "gorseller";
 
-export async function dosyaYukle(dosya: File, klasor: string): Promise<string> {
-  const uzanti = dosya.name.split(".").pop()?.toLowerCase() ?? "jpg";
+/** Yükleme sınırları — `15-gorsel-kovasi.sql` içindeki kova ayarıyla aynı. */
+const IZINLI_TURLER = ["image/jpeg", "image/png", "image/webp"];
+const LOGO_TURLERI = [...IZINLI_TURLER, "image/svg+xml"];
+const AZAMI_BOYUT = 8 * 1024 * 1024;
+
+/** MIME türünden dosya uzantısı. Ad uzantısına güvenmiyoruz. */
+const UZANTILAR: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+};
+
+function mb(bayt: number) {
+  return (bayt / 1024 / 1024).toFixed(1).replace(".", ",");
+}
+
+/**
+ * Dosyayı `gorseller` kovasına yükler ve herkese açık adresini döner.
+ *
+ * Doğrulama iki katmanlı: burada (anlaşılır hata mesajı için) ve kovanın
+ * kendi ayarında (paneli atlayan bir istek için). Uzantı dosya adından değil
+ * MIME türünden üretiliyor — `resim.exe` adlı bir PNG kovaya `.exe` olarak
+ * düşüyordu.
+ */
+export async function dosyaYukle(
+  dosya: File,
+  klasor: string,
+  secenek?: { turler?: string[]; azami?: number },
+): Promise<string> {
+  const turler = secenek?.turler ?? IZINLI_TURLER;
+  const azami = secenek?.azami ?? AZAMI_BOYUT;
+
+  if (!turler.includes(dosya.type)) {
+    throw new Error(
+      `Bu dosya türü yüklenemez (${dosya.type || "bilinmiyor"}). ` +
+        `Kabul edilenler: ${turler.map((t) => UZANTILAR[t]?.toUpperCase() ?? t).join(", ")}.`,
+    );
+  }
+  if (dosya.size > azami) {
+    throw new Error(
+      `Dosya çok büyük (${mb(dosya.size)} MB). En fazla ${mb(azami)} MB olabilir — ` +
+        `telefondan çekilmiş fotoğrafları küçültmen gerekebilir.`,
+    );
+  }
+
+  const uzanti = UZANTILAR[dosya.type] ?? "jpg";
   const yol = `${klasor}/${crypto.randomUUID()}.${uzanti}`;
   const { error } = await db().storage.from(KOVA).upload(yol, dosya, { upsert: false });
   if (error) throw error;
   return db().storage.from(KOVA).getPublicUrl(yol).data.publicUrl;
+}
+
+/**
+ * Herkese açık depo adresinden kova içindeki dosya yolunu çıkarır.
+ * Adres beklenen biçimde değilse `null` — o zaman dosyaya dokunmuyoruz.
+ */
+function depoYolu(url: string): string | null {
+  const iz = `/storage/v1/object/public/${KOVA}/`;
+  const i = url.indexOf(iz);
+  if (i < 0) return null;
+  try {
+    return decodeURIComponent(url.slice(i + iz.length));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Kayıt silindikten SONRA depodaki dosyaları da siler.
+ *
+ * Eskiden yalnız veritabanı satırı siliniyordu; dosya kovada kalıyor, hangisinin
+ * kullanıldığı bir daha bilinemiyordu. Depo tek yönlü büyüyordu.
+ *
+ * Sıra bilerek böyle: önce satır, sonra dosya. Tersi olsaydı satır silme
+ * başarısız olduğunda sitede kırık görsel kalırdı. Dosya silinemezse işlemi
+ * başarısız saymıyoruz — kayıt zaten gitti, geride yalnız yetim dosya kalır.
+ */
+async function dosyalariSil(urller: (string | null | undefined)[]) {
+  const yollar = urller
+    .filter((u): u is string => Boolean(u))
+    .map(depoYolu)
+    .filter((y): y is string => Boolean(y));
+  if (!yollar.length) return;
+
+  const { error } = await db().storage.from(KOVA).remove(yollar);
+  if (error) console.warn("Depodaki dosya silinemedi:", error.message);
 }
 
 export async function gorselleriGetir(): Promise<GorselKaydi[]> {
@@ -267,21 +386,29 @@ export async function slotGorseliDegistir(slot: string, url: string) {
     .single();
   if (error) throw error;
 
-  const { error: silHatasi } = await db()
+  const { data: eskiler, error: silHatasi } = await db()
     .from("gorseller")
     .delete()
     .eq("slot", slot)
-    .neq("id", data.id);
+    .neq("id", data.id)
+    .select("url");
 
   // Eski kayıtlar silinemezse yeni görsel yine de yayında (en yenisi kazanıyor).
   // Yüklemeyi başarısız saymıyoruz, sadece not düşüyoruz.
   if (silHatasi) console.warn("Eski slot kayıtları silinemedi:", silHatasi.message);
+  else await dosyalariSil((eskiler ?? []).map((g) => g.url as string));
 }
 
 /** Slotun TÜM kayıtlarını siler — site varsayılan görsele döner. */
 export async function slotGorseliKaldir(slot: string) {
-  const { data, error } = await db().from("gorseller").delete().eq("slot", slot).select("id");
+  const { data, error } = await db()
+    .from("gorseller")
+    .delete()
+    .eq("slot", slot)
+    .select("id, url");
   if (error) throw error;
+
+  await dosyalariSil((data ?? []).map((g) => g.url as string));
   return data?.length ?? 0;
 }
 
@@ -302,8 +429,9 @@ export async function gorselGuncelle(id: string, degisiklik: Partial<GorselKaydi
 }
 
 export async function gorselSil(id: string) {
-  const { error } = await db().from("gorseller").delete().eq("id", id);
+  const { data, error } = await db().from("gorseller").delete().eq("id", id).select("url");
   if (error) throw error;
+  await dosyalariSil((data ?? []).map((g) => g.url as string));
 }
 
 // ----------------------------------------------------------------- ayarlar
@@ -802,8 +930,10 @@ export async function fotografDurumu(id: string, durum: "bekliyor" | "onayli" | 
 export async function fotografSil(f: TakimFotografi) {
   if (f.dosya_yolu) {
     const kova = f.durum === "onayli" ? FOTO_KOVA : FOTO_BEKLEYEN_KOVA;
-    // Dosya zaten yoksa sorun değil; asıl iş kaydın silinmesi.
-    await db().storage.from(kova).remove([f.dosya_yolu]);
+    // Dosya zaten yoksa sorun değil; asıl iş kaydın silinmesi. Yine de
+    // sonucu yutmuyoruz: sürekli başarısız oluyorsa depoda dosya birikir.
+    const { error: depoHatasi } = await db().storage.from(kova).remove([f.dosya_yolu]);
+    if (depoHatasi) console.warn("Fotoğraf dosyası silinemedi:", depoHatasi.message);
   }
   const { error } = await db().from("takim_fotograflari").delete().eq("id", f.id);
   if (error) throw error;

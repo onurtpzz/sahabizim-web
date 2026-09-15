@@ -83,24 +83,17 @@ export function AltNav() {
               <Link
                 href={s.href}
                 aria-current={aktif ? "page" : undefined}
-                className={`flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 pt-2 pb-1.5 transition-colors ${
+                className={`neon-sekme flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 pt-2 pb-1.5 transition-colors ${
                   aktif ? "text-brand-lite" : "text-[#9cb5a4]"
                 }`}
               >
-                <span
-                  className={`grid h-6 w-6 place-items-center ${aktif ? "drop-shadow-[0_0_6px_rgba(74,222,128,0.5)]" : ""}`}
-                >
+                <span className="neon-ikon grid h-6 w-6 place-items-center">
                   {s.ikon}
                 </span>
                 <span className="font-[family-name:var(--font-data)] text-[10.5px] font-semibold uppercase tracking-[0.08em]">
                   {s.etiket}
                 </span>
-                <span
-                  aria-hidden
-                  className={`h-[2px] w-7 rounded-full transition-colors ${
-                    aktif ? "bg-brand-lite" : "bg-transparent"
-                  }`}
-                />
+                <span aria-hidden className="neon-cizgi h-[2px] w-7 rounded-full bg-brand-lite" />
               </Link>
             </li>
           );

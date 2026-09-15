@@ -5,10 +5,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 
 /**
- * Takım sayfası başlığındaki arma. Dokununca armanın büyük hâli, logonun hemen
- * altında küçük bir kart olarak açılır — tam ekran görüntüleyici değil.
+ * Takım sayfası başlığındaki arma. Dokununca armanın büyük hâli küçük bir kart
+ * olarak açılır — tam ekran görüntüleyici değil.
  *
- * Kart `document.body`'ye portal ile basılıyor: başlık bölümü `overflow-hidden`
+ * Masaüstünde kart logonun tam üstünde, logodan büyüyerek açılır; mobilde logonun
+ * altında. Kart `document.body`'ye portal ile basılıyor: başlık bölümü `overflow-hidden`
  * olduğu için içinde açılsaydı kırpılırdı. Konum logonun ekrandaki yerinden
  * hesaplanıyor; altta yer yoksa üstte açılır, ekran kenarından taşmaz.
  *
@@ -19,7 +20,10 @@ const KART_EN = 280;
 const KENAR = 16;
 const ARA = 12;
 
-type Konum = { top: number; left: number; en: number; yukari: boolean };
+/** Bu genişlikten itibaren kart logonun ÜSTÜNDE, logoyu merkez alarak açılır. */
+const MASAUSTU_EN = 768;
+
+type Konum = { top: number; left: number; en: number; koken: string };
 
 export function TakimArmasi({ url, ad }: { url: string; ad: string }) {
   const [acik, setAcik] = useState(false);
@@ -29,17 +33,45 @@ export function TakimArmasi({ url, ad }: { url: string; ad: string }) {
   const kart = useRef<HTMLDivElement>(null);
   const kapatDugmesi = useRef<HTMLButtonElement>(null);
 
+  /**
+   * İki yerleşim:
+   *   Masaüstü → kart, tıklanan logonun tam üstünde, logonun merkezinden
+   *              büyüyerek açılır. Altta açılsaydı ekranın görünen kısmının
+   *              altına düşüyordu.
+   *   Mobil    → logonun altında (ekran dar, üstünde açılınca başlığı kapatıyordu).
+   * İkisinde de kart ekran kenarlarına sıkıştırılır, taşmaz.
+   */
   const yerlestir = useCallback(() => {
     const d = dugme.current;
     if (!d) return;
     const r = d.getBoundingClientRect();
-    const en = Math.min(KART_EN, window.innerWidth - KENAR * 2);
-    // Kart kare arma + ad satırı; yüksekliği yaklaşık en + 64.
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const en = Math.min(KART_EN, vw - KENAR * 2);
+    // Kart kare arma + ad satırı; ilk karede yüksekliği tahmin, sonra ölçülüyor.
     const boy = kart.current?.offsetHeight ?? en + 64;
-    const left = Math.min(Math.max(r.left, KENAR), window.innerWidth - en - KENAR);
-    const altaSigar = r.bottom + ARA + boy <= window.innerHeight - KENAR;
+    const sikistir = (x: number, enAz: number, enCok: number) =>
+      Math.min(Math.max(x, enAz), Math.max(enAz, enCok));
+
+    if (vw >= MASAUSTU_EN) {
+      const mx = r.left + r.width / 2;
+      const my = r.top + r.height / 2;
+      const left = sikistir(mx - en / 2, KENAR, vw - en - KENAR);
+      const top = sikistir(my - boy / 2, KENAR, vh - boy - KENAR);
+      // Büyüme noktası logonun merkezi — kenara sıkıştırılsa da logodan çıkar.
+      setKonum({ top, left, en, koken: `${mx - left}px ${my - top}px` });
+      return;
+    }
+
+    const left = sikistir(r.left, KENAR, vw - en - KENAR);
+    const altaSigar = r.bottom + ARA + boy <= vh - KENAR;
     const yukari = !altaSigar && r.top - ARA - boy >= KENAR;
-    setKonum({ top: yukari ? r.top - ARA - boy : r.bottom + ARA, left, en, yukari });
+    setKonum({
+      top: yukari ? r.top - ARA - boy : r.bottom + ARA,
+      left,
+      en,
+      koken: yukari ? "bottom left" : "top left",
+    });
   }, []);
 
   const kapat = useCallback(() => {
@@ -104,10 +136,10 @@ export function TakimArmasi({ url, ad }: { url: string; ad: string }) {
               top: konum?.top ?? -9999,
               left: konum?.left ?? -9999,
               width: konum?.en ?? KART_EN,
-              transformOrigin: konum?.yukari ? "bottom left" : "top left",
+              transformOrigin: konum?.koken ?? "top left",
             }}
-            className={`fixed z-50 overflow-hidden rounded border border-line bg-white text-ink shadow-[0_24px_60px_rgba(4,21,11,0.35)] transition duration-200 ease-out motion-reduce:transition-none ${
-              gorunur ? "scale-100 opacity-100" : "scale-95 opacity-0"
+            className={`fixed z-50 overflow-hidden rounded border border-line bg-white text-ink shadow-[0_24px_60px_rgba(4,21,11,0.35)] transition duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none ${
+              gorunur ? "scale-100 opacity-100" : "scale-[0.35] opacity-0"
             }`}
           >
             <div className="relative aspect-square bg-paper">

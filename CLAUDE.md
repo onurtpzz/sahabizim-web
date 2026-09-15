@@ -57,6 +57,9 @@ token kullan: `bg-ink`, `text-brand`, `border-line`, `text-gold`, `text-lose` vb
 - `--color-brand #17A33A` · `--color-brand-lite #4ADE80` · `--color-gold #D4A72C`
 - Fontlar: Anton (`.display` sınıfı, başlıklar) · Manrope (gövde) · Barlow Semi Condensed
   (`--font-data`: tablo, etiket, buton)
+- **Neon menü efektleri** `globals.css` içinde (`.neon-link`, `.neon-dugme`, `.neon-satir`,
+  `.neon-sekme`). Hover kuralları `@media (hover: hover)` içinde kalmalı — dışına çıkarsa
+  telefonda dokunulan bağlantı "yanık" kalır. Aktif sayfa `aria-current="page"` ile yanar.
 - next/font değişkenleri `<html>` üzerinde tanımlı — `<body>`'ye taşıma, `:root` içindeki
   `--font-display` zinciri bozulur.
 

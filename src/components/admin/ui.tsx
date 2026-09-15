@@ -12,8 +12,8 @@ export function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded border border-white/12 bg-ink-3">
-      <header className="flex flex-wrap items-center gap-3 border-b border-white/12 px-4 py-3">
+    <section className="admin-panel overflow-hidden rounded border border-white/12 bg-ink-3">
+      <header className="admin-panel-baslik flex flex-wrap items-center gap-3 border-b border-white/12 px-4 py-3">
         <h2 className="font-[family-name:var(--font-data)] text-sm uppercase tracking-[0.12em] text-[#cfe0d5]">
           {baslik}
         </h2>
@@ -64,9 +64,9 @@ export function Dugme({
   tur?: "birincil" | "ikincil" | "tehlike";
 }) {
   const stiller = {
-    birincil: "bg-brand text-white hover:bg-[#15c244]",
-    ikincil: "border border-white/20 text-[#cfe0d5] hover:border-brand-lite hover:text-white",
-    tehlike: "border border-lose/60 text-[#ff9a8f] hover:bg-lose/15",
+    birincil: "btn-parla bg-brand text-white hover:bg-[#15c244]",
+    ikincil: "btn-cizgi border border-white/20 text-[#cfe0d5] hover:border-brand-lite hover:text-brand-lite",
+    tehlike: "btn-tehlike border border-lose/60 text-[#ff9a8f] hover:bg-lose/15",
   } as const;
   return (
     <button
@@ -129,12 +129,22 @@ export function Bildirim({
     >
       {mesaj && (
         <div
-          className={`pointer-events-auto flex w-full max-w-[420px] items-start gap-3 rounded border px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.45)] ${stil}`}
+          // `key`: art arda gelen iki bildirimde giriş animasyonu ve süre çubuğu baştan başlasın
+          key={mesaj.metin + mesaj.tur}
+          className={`bildirim-gelis pointer-events-auto relative flex w-full max-w-[420px] items-start gap-3 overflow-hidden rounded border px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.45)] ${stil}`}
         >
           <span aria-hidden className="mt-0.5 text-base">
             {mesaj.tur === "hata" ? "⚠" : "✓"}
           </span>
           <p className="flex-1 text-sm">{mesaj.metin}</p>
+          {/* Kalan süre: bildirim kapanana kadar eriyen ince çizgi */}
+          <span
+            aria-hidden
+            style={{ animationDuration: `${mesaj.tur === "hata" ? saniye * 2 : saniye}s` }}
+            className={`bildirim-sure absolute inset-x-0 bottom-0 h-[2px] ${
+              mesaj.tur === "hata" ? "bg-lose" : "bg-brand-lite shadow-[0_0_8px_rgb(74_222_128/0.8)]"
+            }`}
+          />
           <button
             type="button"
             onClick={kapat}
@@ -153,7 +163,7 @@ export function Bildirim({
 export function Rakam({ sayi }: { sayi: number }) {
   if (!sayi) return null;
   return (
-    <span className="ml-1.5 inline-grid min-w-[19px] place-items-center rounded-full bg-gold px-1.5 py-px text-[11px] font-bold text-ink tabular-nums">
+    <span className="rakam-nabiz ml-1.5 inline-grid min-w-[19px] place-items-center rounded-full bg-gold px-1.5 py-px text-[11px] font-bold text-ink tabular-nums">
       {sayi > 99 ? "99+" : sayi}
     </span>
   );
@@ -176,8 +186,14 @@ export function TehlikeliBolge({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded border-2 border-lose/55 bg-[#1a0806]">
-      <header className="border-b border-lose/35 bg-lose/10 px-4 py-3">
+    <section className="admin-panel overflow-hidden rounded border-2 border-lose/55 bg-[#1a0806]">
+      <header
+        className="border-b border-lose/35 bg-lose/10 px-4 py-3"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(135deg, rgb(217 58 43 / 0.10) 0 10px, transparent 10px 20px)",
+        }}
+      >
         <h2 className="flex items-center gap-2 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-[0.12em] text-[#ff9a8f]">
           <span aria-hidden>⚠</span>
           {baslik}
@@ -205,7 +221,7 @@ export function BosDurum({
 }) {
   return (
     <div className="grid justify-items-center gap-2 px-5 py-10 text-center">
-      <span aria-hidden className="text-3xl opacity-40">
+      <span aria-hidden className="bos-simge text-3xl text-brand-lite opacity-60">
         {simge}
       </span>
       <p className="font-[family-name:var(--font-data)] text-lg font-bold">{baslik}</p>
@@ -226,9 +242,9 @@ export function Iskelet({ satir = 3 }: { satir?: number }) {
         <div key={i} className="overflow-hidden rounded border border-white/10 bg-ink-3">
           <div className="h-11 border-b border-white/8 bg-white/4" />
           <div className="grid gap-2.5 p-4">
-            <div className="h-3.5 w-2/5 animate-pulse rounded-full bg-white/10" />
-            <div className="h-3.5 w-4/5 animate-pulse rounded-full bg-white/8" />
-            <div className="h-3.5 w-3/5 animate-pulse rounded-full bg-white/6" />
+            <div className="iskelet-isik h-3.5 w-2/5 rounded-full" />
+            <div className="iskelet-isik h-3.5 w-4/5 rounded-full" />
+            <div className="iskelet-isik h-3.5 w-3/5 rounded-full" />
           </div>
         </div>
       ))}
@@ -265,8 +281,8 @@ export function DosyaSec({
 
   const stil =
     tur === "birincil"
-      ? "bg-brand text-white hover:bg-[#15c244]"
-      : "border border-white/20 text-[#cfe0d5] hover:border-brand-lite hover:text-white";
+      ? "btn-parla bg-brand text-white hover:bg-[#15c244]"
+      : "btn-cizgi border border-white/20 text-[#cfe0d5] hover:border-brand-lite hover:text-brand-lite";
 
   return (
     <label
@@ -353,7 +369,7 @@ export function Pencere({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-5"
+      className="pencere-zemin fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-5 backdrop-blur-[2px]"
       onMouseDown={(e) => {
         // Yalnız zemine basıldıysa kapat; içeride başlayan sürüklemeler değil.
         if (e.target === e.currentTarget) kapat();
@@ -364,7 +380,7 @@ export function Pencere({
         role="dialog"
         aria-modal="true"
         aria-label={baslik}
-        className={`w-full rounded border border-white/15 bg-ink-3 ${genislik}`}
+        className={`pencere-kutu w-full rounded border border-white/15 bg-ink-3 ${genislik}`}
       >
         {children}
       </div>
@@ -457,7 +473,7 @@ export function TakimSecici({
       />
 
       {acik && (
-        <ul className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-sm border border-white/20 bg-[#07200f] shadow-lg">
+        <ul className="pencere-kutu absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-sm border border-brand-lite/40 bg-[#07200f]">
           {liste.length === 0 && (
             <li className="px-3 py-2.5 text-sm text-muted-dark">Eşleşen takım yok</li>
           )}
@@ -470,7 +486,7 @@ export function TakimSecici({
                   setAcik(false);
                   setMetin("");
                 }}
-                className={`block w-full px-3 py-2.5 text-left font-[family-name:var(--font-data)] text-[15px] hover:bg-white/10 ${
+                className={`block w-full px-3 py-2.5 text-left font-[family-name:var(--font-data)] text-[15px] transition-colors hover:bg-brand/20 hover:text-brand-lite active:bg-brand/25 ${
                   t.id === deger ? "text-brand-lite" : "text-white"
                 }`}
               >

@@ -67,6 +67,14 @@ token kullan: `bg-ink`, `text-brand`, `border-line`, `text-gold`, `text-lose` vb
   `satir-neon` (+`satir-neon-koyu`) maç satırı · `foto-hover` · `girdi-neon` (form alanı) ·
   `alt-link` (altbilgi) · `logo-hover`. Bağlantı sonundaki ok `<span aria-hidden className="ok">→</span>`
   olarak yazılır, üzerine gelince kayar.
+- **Mobilde görünen dokunuşlar:** hover olmayan cihaz için her etkileşim sınıfının `:active`
+  karşılığı var; `.eyebrow` önündeki parlayan çizgi ve `.neon-vurgu` kaydırınca oynuyor.
+- **Panel görünümü** `.admin-kok` altında (`globals.css`, "YÖNETİM PANELİ"): form alanı odağı,
+  liste satırı şeridi ve panel giriş animasyonu tek yerden geliyor — panel sayfalarında elle
+  tekrar yazma. `Panel`, `Dugme`, `Bildirim`, `Pencere`, `Iskelet` bu sınıfları zaten taşıyor.
+- **Logo:** `public/images/logo.png` (512 px, JSON-LD için) ve `logo-kucuk.png` (256 px,
+  başlık/altbilgi/panel, `unoptimized`). İkisi de `sahabizimiçerikler/içerikler/Sahabizim_Logo.pdf`
+  içindeki 1590 px görselden arka planı temizlenerek üretildi; logo değişirse aynı kaynaktan üret.
 - next/font değişkenleri `<html>` üzerinde tanımlı — `<body>`'ye taşıma, `:root` içindeki
   `--font-display` zinciri bozulur.
 

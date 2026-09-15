@@ -12,10 +12,11 @@ export async function SiteFooter() {
           <div>
             <Link href="/" className="logo-hover mb-3 flex items-center gap-3 text-white">
               <Image
-                src="/images/logo.png"
+                src="/images/logo-kucuk.png"
                 alt=""
                 width={44}
                 height={44}
+                unoptimized
                 className="h-11 w-11 object-contain"
               />
               <span className="leading-none">

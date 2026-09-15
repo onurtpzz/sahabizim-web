@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Alan, Dugme, Girdi, Uyari } from "@/components/admin/ui";
@@ -31,13 +32,29 @@ export default function GirisSayfasi() {
   }
 
   return (
-    <div className="mx-auto max-w-sm py-10">
-      <h1 className="display text-3xl">Yönetim Girişi</h1>
-      <p className="mt-2 text-sm text-muted-dark">
+    <div className="admin-panel mx-auto max-w-sm py-6 sm:py-10">
+      <div className="giris-logo mx-auto h-28 w-28 rounded-full">
+        <Image
+          src="/images/logo-kucuk.png"
+          alt="SahaBizim logosu"
+          width={112}
+          height={112}
+          unoptimized
+          priority
+          className="h-28 w-28 rounded-full object-contain"
+        />
+      </div>
+      <h1 className="display mt-6 text-center text-3xl">
+        Yönetim <span className="text-gold">Girişi</span>
+      </h1>
+      <p className="mt-2 text-center text-sm text-muted-dark">
         Yalnızca yetkili e-postalar giriş yapabilir.
       </p>
 
-      <form onSubmit={giris} className="mt-7 grid gap-4">
+      <form
+        onSubmit={giris}
+        className="mt-7 grid gap-4 rounded border border-white/12 bg-ink-3/80 p-5 shadow-[0_0_40px_-20px_rgb(74_222_128/0.5)]"
+      >
         <Alan etiket="E-posta">
           <Girdi
             id="eposta"

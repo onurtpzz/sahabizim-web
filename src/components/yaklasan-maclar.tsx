@@ -57,6 +57,8 @@ export function YaklasanMaclar({
   const duyurular = duyuruKayitlari.filter((d) => d.tur === "duyuru").slice(0, DUYURU_ADEDI);
   const tumKurallar = duyuruKayitlari.filter((d) => d.tur === "kural");
 
+  const bugun = ligGunu(new Date().toISOString());
+
   // Maçlar lig gününe göre gruplanıyor; ISO damgasının ilk 10 hanesi UTC'dir.
   const gunler = new Map<string, FiksturMaci[]>();
   for (const m of maclar) {
@@ -129,6 +131,12 @@ export function YaklasanMaclar({
                             {t.gun} {t.ay} ·{" "}
                           </span>
                           {t.haftaGunu}
+                          {gun === bugun && (
+                            <span className="bugun-rozet ml-2 inline-flex items-center gap-1 rounded-full bg-brand/20 px-2 py-0.5 align-middle text-[10px] font-bold tracking-[0.14em] text-brand-lite">
+                              <span aria-hidden className="canli-nokta h-1.5 w-1.5 rounded-full bg-brand-lite" />
+                              Bugün
+                            </span>
+                          )}
                         </p>
                         <ul className="overflow-hidden rounded-sm border border-white/12 bg-white/[0.04]">
                           {liste.map((m) => (

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -151,7 +152,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           await supabase?.auth.signOut();
           router.replace("/admin/giris");
         }}
-        className="rounded-sm border border-white/20 px-3 py-1.5 font-[family-name:var(--font-data)] text-xs tracking-wider text-muted-dark uppercase hover:border-lose hover:text-[#ff9a8f]"
+        className="btn-tehlike rounded-sm border border-white/20 px-3 py-1.5 font-[family-name:var(--font-data)] text-xs tracking-wider text-muted-dark uppercase hover:border-lose hover:text-[#ff9a8f]"
       >
         Çıkış
       </button>
@@ -186,10 +187,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   );
                   if (!devam) e.preventDefault();
                 }}
-                className={`flex-none rounded-sm border px-3.5 py-2 font-[family-name:var(--font-data)] text-sm font-semibold tracking-wider whitespace-nowrap uppercase transition ${
+                className={`admin-sekme flex-none rounded-sm border px-3.5 py-2 font-[family-name:var(--font-data)] text-sm font-semibold tracking-wider whitespace-nowrap uppercase ${
                   aktif
-                    ? "border-brand bg-ink-3 text-white"
-                    : "border-white/12 text-muted-dark hover:text-white"
+                    ? "bg-ink-3 text-white"
+                    : "border-white/12 bg-ink/40 text-muted-dark hover:text-white"
                 }`}
               >
                 {m.label}
@@ -234,19 +235,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
  */
 function Kabuk({ children, sag }: { children: React.ReactNode; sag?: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-ink-2 text-white">
-      <header className="border-b border-white/12 bg-ink">
-        <div className="mx-auto flex w-full max-w-[1180px] items-center gap-3 px-5 py-3.5 sm:py-4">
-          <Link href="/admin" className="display text-lg text-white sm:text-xl">
-            SahaBizim <span className="text-gold">Yönetim</span>
+    <div className="admin-kok min-h-screen bg-ink-2 text-white">
+      <header className="admin-baslik border-b border-white/12 bg-ink/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-[1180px] items-center gap-3 px-5 py-3 sm:py-3.5">
+          <Link href="/admin" className="logo-hover flex items-center gap-2.5 text-white">
+            <Image
+              src="/images/logo-kucuk.png"
+              alt=""
+              width={40}
+              height={40}
+              unoptimized
+              className="h-9 w-9 object-contain sm:h-10 sm:w-10"
+            />
+            <span className="display text-lg sm:text-xl">
+              SahaBizim <span className="text-gold">Yönetim</span>
+            </span>
           </Link>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <Link
               href="/"
-              className="font-[family-name:var(--font-data)] text-sm tracking-wider text-muted-dark uppercase hover:text-white"
+              className="font-[family-name:var(--font-data)] text-sm tracking-wider text-muted-dark uppercase transition-colors hover:text-brand-lite"
             >
-              <span className="hidden sm:inline">Siteyi gör →</span>
-              <span className="sm:hidden">Site →</span>
+              <span className="hidden sm:inline">
+                Siteyi gör <span aria-hidden className="ok">→</span>
+              </span>
+              <span className="sm:hidden">
+                Site <span aria-hidden className="ok">→</span>
+              </span>
             </Link>
             {sag}
           </div>

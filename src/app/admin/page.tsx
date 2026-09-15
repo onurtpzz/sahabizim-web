@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Iskelet, Panel, Uyari } from "@/components/admin/ui";
+import { Sayac } from "@/components/sayac";
 import {
   aktifSezon,
   bekleyenIsler,
@@ -126,9 +127,18 @@ export default function AdminOzet() {
   if (!sayilar) return <Iskelet satir={3} />;
 
   const kutular = [
-    { l: "Takım", v: `${sayilar.aktifTakim}/${sayilar.takim}`, alt: "aktif / toplam" },
-    { l: "Oynanan maç", v: sayilar.oynanan, alt: "bu sezon" },
-    { l: "Sıradaki maç", v: sayilar.bekleyen, alt: "henüz oynanmadı" },
+    {
+      l: "Takım",
+      v: (
+        <>
+          <Sayac hedef={sayilar.aktifTakim} />
+          <span className="text-muted-dark">/{sayilar.takim}</span>
+        </>
+      ),
+      alt: "aktif / toplam",
+    },
+    { l: "Oynanan maç", v: <Sayac hedef={sayilar.oynanan} />, alt: "bu sezon" },
+    { l: "Sıradaki maç", v: <Sayac hedef={sayilar.bekleyen} />, alt: "henüz oynanmadı" },
   ];
 
   // Sıra bilerek böyle: skor girmek günlük iş, diğerleri ara sıra.
@@ -137,7 +147,7 @@ export default function AdminOzet() {
       sayi: isler?.skorsuzMac ?? 0,
       href: "/admin/maclar",
       metin: (n: number) => `${n} maçın skoru girilmemiş`,
-      alt: "Tarihi geçti, sonuç hâlâ boş",
+      alt: "Maç bitti, sonuç hâlâ boş",
     },
     {
       sayi: isler?.fotograf ?? 0,
@@ -160,7 +170,7 @@ export default function AdminOzet() {
       <Panel baslik="Bugün ne var" sag={sayilar.sezon}>
         {isListesi.length === 0 ? (
           <p className="flex items-center gap-3 p-5 text-sm text-[#cfe0d5]">
-            <span aria-hidden className="text-lg text-brand-lite">
+            <span aria-hidden className="bos-simge grid h-9 w-9 place-items-center rounded-full bg-brand/15 text-lg text-brand-lite ring-1 ring-brand-lite/40">
               ✓
             </span>
             Bekleyen iş yok — skorlar girilmiş, onay kuyruğu boş.
@@ -171,9 +181,9 @@ export default function AdminOzet() {
               <li key={i.href}>
                 <Link
                   href={i.href}
-                  className="flex items-center gap-4 px-4 py-4 transition hover:bg-white/5"
+                  className="group flex items-center gap-4 px-4 py-4"
                 >
-                  <span className="display tabular grid h-12 w-12 flex-none place-items-center rounded-full bg-gold/15 text-2xl text-gold">
+                  <span className="display tabular grid h-12 w-12 flex-none place-items-center rounded-full bg-gold/15 text-2xl text-gold ring-1 ring-gold/40 transition-shadow group-hover:shadow-[0_0_18px_rgb(212_167_44/0.45)]">
                     {i.sayi}
                   </span>
                   <span className="min-w-0">
@@ -182,7 +192,7 @@ export default function AdminOzet() {
                     </span>
                     <span className="block text-sm text-muted-dark">{i.alt}</span>
                   </span>
-                  <span aria-hidden className="ml-auto text-xl text-muted-dark">
+                  <span aria-hidden className="ok ml-auto text-xl text-muted-dark group-hover:text-brand-lite">
                     →
                   </span>
                 </Link>
@@ -195,7 +205,7 @@ export default function AdminOzet() {
       <Panel baslik="Sezon özeti" sag={sayilar.sezon}>
         <dl className="grid grid-cols-3 gap-px bg-white/10">
           {kutular.map((k) => (
-            <div key={k.l} className="bg-ink-3 p-5">
+            <div key={k.l} className="ozet-kutu bg-ink-3 p-5">
               <dd className="display tabular text-4xl">{k.v}</dd>
               <dt className="mt-1 font-[family-name:var(--font-data)] text-xs uppercase tracking-[0.14em] text-muted-dark">
                 {k.l}
@@ -220,9 +230,9 @@ export default function AdminOzet() {
             <Link
               key={k.l}
               href={k.href}
-              className="rounded-sm border border-white/15 px-4 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider text-[#cfe0d5] transition hover:border-brand-lite hover:text-white"
+              className="btn-cizgi rounded-sm border border-white/15 px-4 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider text-[#cfe0d5] hover:border-brand-lite hover:text-brand-lite"
             >
-              {k.l}
+              {k.l} <span aria-hidden className="ok">→</span>
             </Link>
           ))}
         </div>

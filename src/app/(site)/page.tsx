@@ -73,7 +73,7 @@ export default async function Anasayfa() {
             <h1 className="display mt-3 text-[clamp(2.75rem,9vw,6.5rem)]">
               {icerik.hero_baslik}
               <br />
-              <em className="not-italic text-brand-lite">{icerik.hero_vurgu}</em>
+              <em className="neon-vurgu not-italic text-brand-lite">{icerik.hero_vurgu}</em>
             </h1>
             <p className="mt-5 max-w-[56ch] text-[#cfe0d5] md:text-lg">{icerik.hero_metin}</p>
             <div className="mt-7 flex flex-wrap gap-3">

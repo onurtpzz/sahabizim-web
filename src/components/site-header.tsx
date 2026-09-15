@@ -25,10 +25,11 @@ export function SiteHeader() {
       <div className="mx-auto flex h-[70px] w-full max-w-[1180px] items-center gap-4 px-5">
         <Link href="/" className="logo-hover flex flex-none items-center gap-3 text-white">
           <Image
-            src="/images/logo.png"
+            src="/images/logo-kucuk.png"
             alt="SahaBizim logosu"
             width={44}
             height={44}
+            unoptimized
             priority
             className="h-11 w-11 object-contain"
           />

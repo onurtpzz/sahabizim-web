@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export function Panel({
   baslik,
@@ -367,9 +368,13 @@ export function Pencere({
     };
   }, []);
 
-  return (
+  // Pencere `document.body`'ye basılıyor: panel kutuları `overflow-hidden` ve giriş
+  // animasyonu taşıyor; içlerinde kalınca `fixed` pencere ekranın dışına düşüyordu.
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div
-      className="pencere-zemin fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-5 backdrop-blur-[2px]"
+      className="pencere-zemin fixed inset-0 z-50 flex overflow-y-auto overscroll-contain bg-black/60 p-3 backdrop-blur-[2px] sm:p-5"
       onMouseDown={(e) => {
         // Yalnız zemine basıldıysa kapat; içeride başlayan sürüklemeler değil.
         if (e.target === e.currentTarget) kapat();
@@ -380,11 +385,14 @@ export function Pencere({
         role="dialog"
         aria-modal="true"
         aria-label={baslik}
-        className={`pencere-kutu w-full rounded border border-white/15 bg-ink-3 ${genislik}`}
+        // `m-auto` (flex içinde): kısa pencere ortalanır, ekrandan uzun pencere
+        // üstten başlar ve kaydırılır — `place-items-center` üst kısmı ekran dışına itiyordu.
+        className={`pencere-kutu m-auto w-full rounded border border-white/15 bg-ink-3 ${genislik}`}
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

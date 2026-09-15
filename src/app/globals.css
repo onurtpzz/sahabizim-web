@@ -228,7 +228,7 @@ body {
 
 /* Açılır menü maddeleri sırayla kayarak gelir */
 .menu-acik .menu-madde {
-  animation: menu-gelis 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: menu-gelis 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   animation-delay: calc(var(--sira, 0) * 40ms);
 }
 @keyframes menu-gelis {
@@ -631,9 +631,13 @@ button:active .ok {
   }
 }
 
-/* Panel kutusu: açılışta yukarı kayarak gelir, başlığın solunda yeşil şerit */
+/* Panel kutusu: açılışta yukarı kayarak gelir, başlığın solunda yeşil şerit.
+   DİKKAT — `transform` animasyonlarında `both`/`forwards` KULLANMA: animasyon bitince
+   de dönüşüm "tutulu" kalır ve öğe, içindeki `position: fixed` pencereleri kendine
+   hapseder. Mobilde maç görseli penceresi panelin içinde, ekranın çok altında
+   açılıyordu. `backwards` yalnız gecikme süresince ilk kareyi tutar. */
 .admin-panel {
-  animation: panel-gelis 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: panel-gelis 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 @media (hover: hover) {
@@ -731,7 +735,7 @@ button:active .ok {
 
 /* Bildirim: alttan kayarak gelir, altında süre çubuğu erir */
 .bildirim-gelis {
-  animation: bildirim-gelis 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: bildirim-gelis 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 @keyframes bildirim-gelis {
   from { opacity: 0; transform: translateY(16px) scale(0.97); }
@@ -751,7 +755,7 @@ button:active .ok {
   animation: zemin-gelis 0.25s ease-out both;
 }
 .pencere-kutu {
-  animation: kutu-gelis 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: kutu-gelis 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   box-shadow: 0 0 0 1px rgb(74 222 128 / 0.15), 0 24px 60px -20px rgb(0 0 0 / 0.7), 0 0 40px -18px rgb(74 222 128 / 0.5);
 }
 @keyframes zemin-gelis {

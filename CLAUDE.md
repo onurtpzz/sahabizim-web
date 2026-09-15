@@ -189,7 +189,10 @@ olgunlukta yapılmıştı.
   duran uyarı, uzun listenin ortasındayken hiç görünmüyordu. Her sayfa tek bir
   `mesaj` state'i tutar ve bunu basar.
 - `Pencere` — kalıcı pencere (modal): `role="dialog"`, Esc, açılışta odak, kapanınca odağın
-  geri dönmesi, kaydırma kilidi. Elle `fixed inset-0` yazma.
+  geri dönmesi, kaydırma kilidi. Elle `fixed inset-0` yazma. `document.body`'ye **portal** ile
+  basılır; ekrandan uzun pencere kendi içinde kayar. *Transform animasyonu taşıyan bir kutunun
+  içindeki `fixed` öğe o kutuya hapsolur* — 15.09.2026'da mobilde maç görseli penceresi bu
+  yüzden ekranın altında açılıyordu. Transform animasyonlarında `both`/`forwards` kullanma.
 - `DosyaSec` — dosya seçtiren etiket-düğme. `<input type="file" className="hidden">`
   **kullanma**: `display:none` odaklanamaz, o alan klavyeyle erişilemez hale gelir.
 - `BosDurum` / `Iskelet` — boş liste ve yükleme. Düz "Kayıt yok" / "Yükleniyor…" yazma.

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAnasayfayaDon } from "@/lib/anasayfaya-don";
 
 /**
  * Mobilde ekranın altına sabitlenen kısayol çubuğu. Masaüstünde gizli
@@ -69,6 +70,7 @@ const SEKMELER: Sekme[] = [
 
 export function AltNav() {
   const yol = usePathname();
+  const anasayfayaDon = useAnasayfayaDon();
 
   return (
     <nav
@@ -82,6 +84,7 @@ export function AltNav() {
             <li key={s.href}>
               <Link
                 href={s.href}
+                onClick={s.href === "/" ? anasayfayaDon : undefined}
                 aria-current={aktif ? "page" : undefined}
                 className={`neon-sekme flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 pt-2 pb-1.5 transition-colors ${
                   aktif ? "text-brand-lite" : "text-[#9cb5a4]"

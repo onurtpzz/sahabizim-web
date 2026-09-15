@@ -1,5 +1,6 @@
 "use client";
 
+import { aramaMetni } from "@/lib/arama";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { rozet } from "@/lib/puan";
@@ -45,9 +46,9 @@ export function PuanTablosu({
   const [hepsi, setHepsi] = useState(baslangicAdet === undefined);
 
   const gosterilecek = useMemo(() => {
-    const arama = q.trim().toLocaleLowerCase("tr");
+    const arama = aramaMetni(q);
     if (arama) {
-      return satirlar.filter((t) => t.ad.toLocaleLowerCase("tr").includes(arama));
+      return satirlar.filter((t) => aramaMetni(t.ad).includes(arama));
     }
     return hepsi ? satirlar : satirlar.slice(0, baslangicAdet);
   }, [q, hepsi, satirlar, baslangicAdet]);

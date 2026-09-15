@@ -1,5 +1,6 @@
 "use client";
 
+import { aramaMetni } from "@/lib/arama";
 import { useEffect, useState } from "react";
 import { Alan, Bildirim, DosyaSec, Dugme, Girdi, Panel, Pencere, Rozet, Uyari } from "@/components/admin/ui";
 import { useKirli } from "@/lib/kirli";
@@ -94,7 +95,7 @@ export default function AdminTakimlar() {
   }
 
   const listelenen = ara
-    ? takimlar.filter((t) => t.ad.toLocaleLowerCase("tr").includes(ara.toLocaleLowerCase("tr")))
+    ? takimlar.filter((t) => aramaMetni(t.ad).includes(aramaMetni(ara)))
     : takimlar;
 
   return (

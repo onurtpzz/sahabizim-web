@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { aramaMetni } from "@/lib/arama";
 
 export function Panel({
   baslik,
@@ -458,9 +459,9 @@ export function TakimSecici({
     return () => document.removeEventListener("mousedown", disariTikla);
   }, []);
 
-  const arama = metin.trim().toLocaleLowerCase("tr");
+  const arama = aramaMetni(metin);
   const liste = arama
-    ? takimlar.filter((t) => t.ad.toLocaleLowerCase("tr").includes(arama)).slice(0, 12)
+    ? takimlar.filter((t) => aramaMetni(t.ad).includes(arama)).slice(0, 12)
     : takimlar.slice(0, 12);
 
   return (

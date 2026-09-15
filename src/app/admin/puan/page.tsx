@@ -1,5 +1,6 @@
 "use client";
 
+import { aramaMetni } from "@/lib/arama";
 import { useEffect, useMemo, useState } from "react";
 import { Alan, Bildirim, Dugme, Girdi, Iskelet, Panel, TakimSecici, Uyari } from "@/components/admin/ui";
 import { useKirli } from "@/lib/kirli";
@@ -57,9 +58,9 @@ export default function AdminPuan() {
   if (yukleniyor) return <Iskelet satir={3} />;
   if (!sezon) return <Uyari tur="hata">Aktif sezon yok. Önce Sezon sekmesinden başlat.</Uyari>;
 
-  const q = arama.trim().toLocaleLowerCase("tr");
+  const q = aramaMetni(arama);
   const gorunen = q
-    ? takimlar.filter((t) => t.ad.toLocaleLowerCase("tr").includes(q))
+    ? takimlar.filter((t) => aramaMetni(t.ad).includes(q))
     : takimlar.slice(0, 0);
 
   return (

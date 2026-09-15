@@ -1,5 +1,6 @@
 "use client";
 
+import { aramaMetni } from "@/lib/arama";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alan,
@@ -84,11 +85,11 @@ export default function AdminMaclar() {
     );
   }
 
-  const anahtar = arama.trim().toLocaleLowerCase("tr");
+  const anahtar = aramaMetni(arama);
   const eslesir = (m: Mac) =>
     !anahtar ||
-    (bilgiler[m.ev_id]?.ad ?? "").toLocaleLowerCase("tr").includes(anahtar) ||
-    (bilgiler[m.dep_id]?.ad ?? "").toLocaleLowerCase("tr").includes(anahtar);
+    aramaMetni(bilgiler[m.ev_id]?.ad ?? "").includes(anahtar) ||
+    aramaMetni(bilgiler[m.dep_id]?.ad ?? "").includes(anahtar);
 
   /**
    * "Skor bekleyen" ikiye ayrılıyor.

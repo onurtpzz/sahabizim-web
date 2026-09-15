@@ -119,6 +119,12 @@ export function MacGorseli({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hazir, setHazir] = useState(false);
+  /**
+   * Görsel çizilince PNG bir kez üretilip burada tutuluyor. Paylaşım için şart:
+   * iPhone Safari `navigator.share`i yalnız dokunuşun hemen ardından kabul ediyor;
+   * dokununca PNG üretmeyi beklersek izin düşüyor ve paylaşım penceresi açılmıyor.
+   */
+  const pngRef = useRef<Blob | null>(null);
 
   const ciz = useCallback(async () => {
     const canvas = canvasRef.current;
@@ -377,6 +383,14 @@ export function MacGorseli({
     ctx.fillText("WWW.SAHABIZIM.COM.TR", M, 952);
     if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
 
+    pngRef.current = null;
+    try {
+      canvas.toBlob((b) => {
+        pngRef.current = b;
+      }, "image/png");
+    } catch {
+      /* logo "kirletmişse" toBlob hata atar; indir/paylaş aynı hatayı kullanıcıya söyler */
+    }
     setHazir(true);
   }, [mac]);
 
@@ -385,31 +399,97 @@ export function MacGorseli({
   }, [ciz]);
 
   const [hata, setHata] = useState("");
+  const [bilgi, setBilgi] = useState("");
 
-  function indir() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const temiz = (x: string) =>
-      x.toLocaleLowerCase("tr").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const duyuruMu = mac.evSkor === null || mac.depSkor === null;
+  // Dosya adı: Türkçe harfler sadeleşir ("Gençlik" → "genclik"), gerisi tireye döner.
+  const temiz = (x: string) =>
+    x
+      .toLocaleLowerCase("tr")
+      .replace(/[çğıöşü]/g, (h) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" })[h] ?? h)
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  const dosyaAdi = duyuruMu
+    ? `sahabizim-mac-${temiz(mac.evAd)}-${temiz(mac.depAd)}.png`
+    : `sahabizim-${temiz(mac.evAd)}-${mac.evSkor}-${mac.depSkor}-${temiz(mac.depAd)}.png`;
+  const paylasimMetni = duyuruMu
+    ? `${mac.evAd} – ${mac.depAd} · SahaBizim Ligi`
+    : `${mac.evAd} ${mac.evSkor}–${mac.depSkor} ${mac.depAd} · SahaBizim Ligi`;
+
+  const KIRLI_HATA =
+    "Görsel hazırlanamadı — takım logolarından biri tarayıcının izin vermediği bir adresten geliyor. Logoyu panelden tekrar yükleyip dener misin?";
+
+  /** Hazır PNG; yoksa (çok hızlı basıldıysa) şimdi üretir. */
+  function pngAl(): Promise<Blob> {
+    if (pngRef.current) return Promise.resolve(pngRef.current);
+    return new Promise((coz, reddet) => {
+      try {
+        canvasRef.current?.toBlob((b) => (b ? coz(b) : reddet(new Error("bos"))), "image/png");
+      } catch (e) {
+        reddet(e);
+      }
+    });
+  }
+
+  /**
+   * Dosya paylaşımı destekleniyor mu? Telefonlarda (Android Chrome, iPhone
+   * Safari) ve Windows/Mac'te Edge/Safari'de evet; masaüstü Firefox'ta hayır.
+   * Pencere yalnız tıklamayla açıldığı için burada `navigator` her zaman var.
+   */
+  const dosyaPaylasilir =
+    typeof navigator !== "undefined" &&
+    typeof navigator.canShare === "function" &&
+    navigator.canShare({ files: [new File([""], "deneme.png", { type: "image/png" })] });
+
+  async function indir() {
+    setHata("");
     try {
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        const duyuruMu = mac.evSkor === null || mac.depSkor === null;
-        a.download = duyuruMu
-          ? `sahabizim-mac-${temiz(mac.evAd)}-${temiz(mac.depAd)}.png`
-          : `sahabizim-${temiz(mac.evAd)}-${mac.evSkor}-${mac.depSkor}-${temiz(mac.depAd)}.png`;
-        a.click();
-        // İptal etmeyi bir tur geciktiriyoruz: bazı tarayıcılarda `click()`
-        // hemen ardından iptal edilirse indirme hiç başlamıyor.
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      }, "image/png");
+      const blob = await pngAl();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = dosyaAdi;
+      a.click();
+      // İptal etmeyi bir tur geciktiriyoruz: bazı tarayıcılarda `click()`
+      // hemen ardından iptal edilirse indirme hiç başlamıyor.
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch {
-      setHata(
-        "Görsel indirilemedi — takım logolarından biri tarayıcının izin vermediği bir adresten geliyor. Logoyu panelden tekrar yükleyip dener misin?",
-      );
+      setHata(KIRLI_HATA);
+    }
+  }
+
+  /**
+   * Telefonun paylaşım penceresini açar (Instagram, WhatsApp, Galeriye kaydet…).
+   * Desteklemeyen tarayıcıda görseli panoya kopyalar; o da yoksa indirir.
+   */
+  async function paylas() {
+    setHata("");
+    setBilgi("");
+    const hazirPng = pngRef.current;
+    try {
+      if (dosyaPaylasilir) {
+        // Hazır PNG varsa beklemeden paylaş — Safari'de dokunuş izni düşmesin.
+        const blob = hazirPng ?? (await pngAl());
+        const dosya = new File([blob], dosyaAdi, { type: "image/png" });
+        await navigator.share({ files: [dosya], title: "SahaBizim Ligi", text: paylasimMetni });
+        return;
+      }
+      const blob = hazirPng ?? (await pngAl());
+      if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        setBilgi("Görsel panoya kopyalandı — WhatsApp Web'e ya da Instagram'a yapıştırabilirsin.");
+        return;
+      }
+      await indir();
+      setBilgi("Bu tarayıcı doğrudan paylaşımı desteklemiyor; görsel indirildi.");
+    } catch (e) {
+      // Kullanıcı paylaşım penceresini kapattıysa hata değil.
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      if (e instanceof DOMException && e.name === "NotAllowedError") {
+        setHata("Paylaşım penceresi açılamadı. Bir kez daha \"Paylaş\"a dokun.");
+        return;
+      }
+      setHata(KIRLI_HATA);
     }
   }
 
@@ -445,6 +525,12 @@ export function MacGorseli({
           className="w-full rounded border border-white/10 bg-ink"
         />
 
+        {bilgi && (
+          <p className="rounded border border-brand/50 bg-brand/10 px-4 py-3 text-sm text-[#d7f5df]">
+            {bilgi}
+          </p>
+        )}
+
         {hata && (
           <p className="rounded border border-lose/50 bg-lose/10 px-4 py-3 text-sm text-[#ffd7d2]">
             {hata}
@@ -452,8 +538,29 @@ export function MacGorseli({
         )}
 
         <div className="flex flex-wrap gap-2">
-          <Dugme type="button" onClick={indir} disabled={!hazir}>
-            {hazir ? "PNG İndir" : "Hazırlanıyor…"}
+          <Dugme
+            type="button"
+            onClick={paylas}
+            disabled={!hazir}
+            className="inline-flex items-center gap-2"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 3v12M8 7l4-4 4 4" />
+              <path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1" />
+            </svg>
+            {hazir ? (dosyaPaylasilir ? "Paylaş" : "Kopyala") : "Hazırlanıyor…"}
+          </Dugme>
+          <Dugme type="button" tur="ikincil" onClick={indir} disabled={!hazir}>
+            PNG İndir
           </Dugme>
           <Dugme type="button" tur="ikincil" onClick={kapat}>
             Kapat
@@ -461,7 +568,8 @@ export function MacGorseli({
         </div>
 
         <p className="text-xs text-muted-dark">
-          İndirdiğin dosyayı Instagram&apos;a gönderi olarak yükleyebilirsin. Takımın
+          <strong className="text-[#cfe0d5]">Paylaş</strong> telefonda Instagram, WhatsApp ve
+          galeriye kaydet seçeneklerini açar; bilgisayarda görseli panoya kopyalar. Takımın
           logosu panelde yüklüyse görselde arma olarak çıkar; yoksa baş harf rozeti
           kullanılır.
         </p>

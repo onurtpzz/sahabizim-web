@@ -200,6 +200,11 @@ olgunlukta yapılmıştı.
   Skor gecikmesinin tek tanımı `skorBekleniyorMu()` (`@/lib/zaman`): maçlar **1 saat**
   (`MAC_SURESI_DK`), 22:00 maçı 23:00'te gecikmiş sayılır; saati belirsiz maç gün bitince.
   Rozet de sayfa da bunu kullanır — ayrı bir `oynanma < şimdi` karşılaştırması yazma.
+- **Maç & Skor sayfasında skoru girilmemiş maçlar EN ÜSTTE durur** — maç ekleme formunun ve
+  aramanın üstünde. Bu sıralamayı bozma; panelin günlük asıl işi skor girmek.
+- **Maç görseli paylaşımı:** `navigator.share` (dosyalı) destekleniyorsa telefonun paylaşım
+  penceresi, yoksa panoya kopyalama, o da yoksa indirme. PNG çizim bitince önceden üretiliyor
+  (`pngRef`): iPhone Safari paylaşımı yalnız dokunuşun hemen ardından kabul ediyor.
 - `src/lib/kirli.ts` — kaydedilmemiş değişiklik defteri. Kutu doldurulan her ekran
   `useKirli(benzersizId, degisti)` çağırmalı; layout menüden çıkışta soruyor. *`beforeunload`
   mobilde çalışmaz (iOS Safari desteklemiyor); mobilde işi yapışkan şerit ve menü onayı
@@ -222,8 +227,9 @@ olgunlukta yapılmıştı.
 Yedek yok — yukarıdaki "CANLI VERİYE DOKUNMA" kuralı burada da geçerli.
 
 SQL dosyaları `supabase/` altında, numara sırasıyla çalıştırılır (01–15 çalıştırıldı).
-`16-kampanya-temizligi.sql` **VERİ SİLER** (ayarlar tablosundan 4 kampanya satırı) — yazıldı,
-kullanıcı onayı olmadan çalıştırılmadı.
+`16-kampanya-temizligi.sql` (kampanya ayar satırlarını siler) kullanıcı tarafından çalıştırıldı —
+yani 01–16 çalıştırıldı. Panel ayarlarındaki `KALDIRILAN` gizleme listesi artık zararsız bir
+emniyet, silinebilir.
 Yeni bir dosya eklersen Supabase → SQL Editor'da çalıştırılması gerektiğini söyle. RLS
 uyarısı çıkarsa **Run and enable RLS** denir; dosyalar RLS'i zaten kendisi açıyor.
 

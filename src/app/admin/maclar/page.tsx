@@ -120,6 +120,25 @@ export default function AdminMaclar() {
     <div className="grid gap-6">
       <Bildirim mesaj={mesaj} kapat={() => setMesaj(null)} />
 
+      {/*
+        KURAL: skoru girilmemiş (bitmiş ama sonucu boş) maç varsa sayfanın EN
+        ÜSTÜNDE durur — maç ekleme formunun ve aramanın da üstünde. Panelin
+        günlük asıl işi bu; formun altında kalınca gözden kaçıyordu.
+        Arama kutusu bu listeyi de süzer.
+      */}
+      {geciken.length > 0 && (
+        <Panel
+          baslik="⚠ Skoru girilmemiş maçlar"
+          sag={`${geciken.length} maç · bitti, skor bekleniyor`}
+        >
+          <ul className="divide-y divide-white/8">
+            {geciken.map((m) => (
+              <MacSatiri key={m.id} mac={m} bilgiler={bilgiler} yenile={yenile} setMesaj={setMesaj} />
+            ))}
+          </ul>
+        </Panel>
+      )}
+
       <YeniMac
         sezonId={sezon.id}
         takimlar={takimlar}
@@ -153,19 +172,6 @@ export default function AdminMaclar() {
           </label>
         </div>
       </Panel>
-
-      {geciken.length > 0 && (
-        <Panel
-          baslik="Skoru girilmemiş maçlar"
-          sag={`${geciken.length} maç · bitti, skor bekleniyor`}
-        >
-          <ul className="divide-y divide-white/8">
-            {geciken.map((m) => (
-              <MacSatiri key={m.id} mac={m} bilgiler={bilgiler} yenile={yenile} setMesaj={setMesaj} />
-            ))}
-          </ul>
-        </Panel>
-      )}
 
       {sirada.length > 0 && (
         <Panel baslik="Sıradaki maçlar" sag={`${sirada.length} maç · henüz bitmedi`}>

@@ -477,12 +477,16 @@ export type Duyuru = {
 };
 
 /**
- * Yayındaki duyuru ve kurallar. Sıralama: önce sabitlenenler,
+ * Yayındaki duyuru ve kurallar — durum bilgisiyle. Sıralama: önce sabitlenenler,
  * sonra duyurularda tarihe göre yeniden eskiye, kurallarda elle verilen sıra.
+ *
+ * Eskiden hata anında sessizce `[]` dönüyordu; veritabanı kesintisinde sitede
+ * "Henüz duyuru yok" yazıyordu. Artık okunamayan liste ile gerçekten boş liste
+ * ayrı (bkz. `VeriSonucu`).
  */
-export const getDuyurular = cache(
-  hafizala("duyurular", async (): Promise<Duyuru[]> => {
-    if (!supabase) return [];
+export const getDuyurularSonucu = cache(
+  hafizala("duyurular", async (): Promise<VeriSonucu<Duyuru[]>> => {
+    if (!supabase) return { durum: "yedek", veri: [] };
     const { data, error } = await supabase
       .from("duyurular")
       .select("id, tur, tarih, baslik, metin, sabit, sira")
@@ -490,9 +494,18 @@ export const getDuyurular = cache(
       .order("sabit", { ascending: false })
       .order("tarih", { ascending: false, nullsFirst: false })
       .order("sira");
-    if (error || !data) return [];
-    return data as Duyuru[];
+    if (error) {
+      console.error("Duyurular okunamadı:", error.message);
+      return { durum: "hata", veri: [], mesaj: error.message };
+    }
+    return { durum: "hazir", veri: (data ?? []) as Duyuru[] };
   }),
+);
+
+/** Yalnız kayıtlar. Hata durumunda boş döner; listeyi gösteren sayfalar
+ *  uyarı için `getDuyurularSonucu()` kullanmalı. */
+export const getDuyurular = cache(
+  async (): Promise<Duyuru[]> => (await getDuyurularSonucu()).veri,
 );
 
 // ---------------------------------------------------------------------

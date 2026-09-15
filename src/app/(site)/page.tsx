@@ -6,10 +6,10 @@ import { Reveal } from "@/components/reveal";
 import { Sayac } from "@/components/sayac";
 import { SosyalIcerikler } from "@/components/sosyal-icerikler";
 import { VeriUyarisi } from "@/components/veri-uyarisi";
-import { sonDuyurular, yaklasanMaclar, YaklasanMaclar } from "@/components/yaklasan-maclar";
+import { yaklasanMaclar, YaklasanMaclar } from "@/components/yaklasan-maclar";
 import { haftaninOzeti } from "@/lib/hafta";
 import {
-  getDuyurular,
+  getDuyurularSonucu,
   getGaleri,
   getMaclarSonucu,
   getIcerik,
@@ -30,7 +30,7 @@ const YEDEK_GALERI = [
 ];
 
 export default async function Anasayfa() {
-  const [sonuc, ozet, icerik, heroGorsel, galeri, sosyal, maclarSonucu, duyurular] =
+  const [sonuc, ozet, icerik, heroGorsel, galeri, sosyal, maclarSonucu, duyurularSonucu] =
     await Promise.all([
       getPuanDurumuSonucu(),
       getLigOzeti(),
@@ -39,7 +39,7 @@ export default async function Anasayfa() {
       getGaleri(YEDEK_GALERI),
       getSosyalIcerikler(6),
       getMaclarSonucu(),
-      getDuyurular(),
+      getDuyurularSonucu(),
     ]);
 
   const satirlar = sonuc.veri;
@@ -148,8 +148,9 @@ export default async function Anasayfa() {
       {/* YAKLAŞAN MAÇLAR + DUYURULAR (eski kampanya bandının yeri) */}
       <YaklasanMaclar
         maclar={yaklasanMaclar(maclar)}
-        duyurular={sonDuyurular(duyurular)}
+        duyuruKayitlari={duyurularSonucu.veri}
         fiksturHatasi={maclarSonucu.durum === "hata"}
+        duyuruHatasi={duyurularSonucu.durum === "hata"}
         arkaPlan="/images/atkilar.jpg"
       />
 

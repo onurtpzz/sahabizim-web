@@ -11,28 +11,28 @@ import { ligGunu, macSaati, tarihRozeti } from "@/lib/zaman";
  * soluk arka plan fotoğrafı, altın vurgu) ondan devralındı.
  */
 
-/** Anasayfada gösterilecek en fazla maç ve duyuru sayısı. */
-const MAC_ADEDI = 6;
+/** Anasayfada gösterilecek maç günü, duyuru ve kural sayısı. */
+const MAC_GUNU_ADEDI = 2;
 const DUYURU_ADEDI = 3;
+const KURAL_ADEDI = 5;
 
 /**
- * Tarihi bugün veya sonrası olan, oynanacak maçlar — en yakından uzağa.
+ * Maç olan en yakın iki günün bütün maçları — en yakından uzağa.
+ *
+ * Maç sayısıyla değil gün sayısıyla kesiliyor: bir günün maçları yarıda
+ * bölünmesin. Tamamı fikstür sayfasında.
  *
  * Karşılaştırma lig gününe göre: bugün oynanmış ama skoru henüz girilmemiş
  * akşam maçı da "yaklaşan" sayılır. Tarihi geçmiş skorsuz maçlar ve
  * ertelenenler burada gösterilmez; onlar fikstür sayfasında duruyor.
  */
-export function yaklasanMaclar(maclar: FiksturMaci[], adet = MAC_ADEDI) {
+export function yaklasanMaclar(maclar: FiksturMaci[], gunAdedi = MAC_GUNU_ADEDI) {
   const bugun = ligGunu(new Date().toISOString());
-  return maclar
+  const sirali = maclar
     .filter((m) => m.durum === "oynanacak" && m.tarih && ligGunu(m.tarih) >= bugun)
-    .sort((a, b) => (a.tarih ?? "").localeCompare(b.tarih ?? ""))
-    .slice(0, adet);
-}
-
-/** Yalnız duyurular (kurallar hariç); sabitlenenler önce, sonra en yeni. */
-export function sonDuyurular(hepsi: Duyuru[], adet = DUYURU_ADEDI) {
-  return hepsi.filter((d) => d.tur === "duyuru").slice(0, adet);
+    .sort((a, b) => (a.tarih ?? "").localeCompare(b.tarih ?? ""));
+  const gunler = [...new Set(sirali.map((m) => ligGunu(m.tarih!)))].slice(0, gunAdedi);
+  return sirali.filter((m) => gunler.includes(ligGunu(m.tarih!)));
 }
 
 const BAGLANTI =
@@ -40,15 +40,22 @@ const BAGLANTI =
 
 export function YaklasanMaclar({
   maclar,
-  duyurular,
+  duyuruKayitlari,
   fiksturHatasi,
+  duyuruHatasi,
   arkaPlan,
 }: {
   maclar: FiksturMaci[];
-  duyurular: Duyuru[];
+  /** Duyuru ve kuralların tamamı; burada ayrılıp kısaltılıyor. */
+  duyuruKayitlari: Duyuru[];
   fiksturHatasi: boolean;
+  duyuruHatasi: boolean;
   arkaPlan: string;
 }) {
+  // Sıralama veritabanından geliyor: sabitlenenler önce, sonra en yeni.
+  const duyurular = duyuruKayitlari.filter((d) => d.tur === "duyuru").slice(0, DUYURU_ADEDI);
+  const tumKurallar = duyuruKayitlari.filter((d) => d.tur === "kural");
+
   // Maçlar lig gününe göre gruplanıyor; ISO damgasının ilk 10 hanesi UTC'dir.
   const gunler = new Map<string, FiksturMaci[]>();
   for (const m of maclar) {
@@ -139,7 +146,9 @@ export function YaklasanMaclar({
           </Reveal>
 
           <Reveal delay={120}>
-            {duyurular.length === 0 ? (
+            {duyuruHatasi ? (
+              <BosKutu metin="Duyurular şu an okunamıyor. Birkaç dakika içinde kendiliğinden düzelir." />
+            ) : duyurular.length === 0 ? (
               <BosKutu metin="Henüz duyuru yok. Lig ile ilgili her yenilik önce burada görünecek." />
             ) : (
               <ul className="grid gap-3">
@@ -149,6 +158,13 @@ export function YaklasanMaclar({
               </ul>
             )}
           </Reveal>
+
+          {/* Hata anında yukarıdaki kutu yeterli; ikinci uyarı basılmıyor. */}
+          {!duyuruHatasi && tumKurallar.length > 0 && (
+            <Reveal delay={140} className="mt-8">
+              <Kurallar kurallar={tumKurallar} />
+            </Reveal>
+          )}
         </div>
       </div>
     </section>
@@ -241,5 +257,58 @@ function DuyuruKarti({ duyuru: d }: { duyuru: Duyuru }) {
         {ozet && <p className="mt-1.5 line-clamp-2 text-[15px] text-[#cfe0d5]">{ozet}</p>}
       </Link>
     </li>
+  );
+}
+
+/**
+ * Kısa kural listesi: yalnız başlıklar, dokununca açıklama açılıyor.
+ * `<details>` JavaScript'siz çalışıyor ve klavyeyle erişilebilir.
+ */
+function Kurallar({ kurallar }: { kurallar: Duyuru[] }) {
+  const gosterilen = kurallar.slice(0, KURAL_ADEDI);
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+        <h3 className="eyebrow text-gold">Lig kuralları</h3>
+        <Link
+          href="/kurallar-ve-duyurular#kurallar"
+          className={`${BAGLANTI} border-gold text-gold hover:border-white hover:text-white`}
+        >
+          Tüm kurallar ({kurallar.length}) →
+        </Link>
+      </div>
+      <ol className="divide-y divide-white/10 rounded-sm border border-white/12 bg-white/[0.04]">
+        {gosterilen.map((k, i) => (
+          <li key={k.id}>
+            <details className="group">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 px-4 py-2.5 transition-colors hover:bg-white/[0.06] [&::-webkit-details-marker]:hidden">
+                <span
+                  aria-hidden
+                  className="display w-6 flex-none text-lg text-white/50 group-open:text-gold"
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="min-w-0 flex-1 font-[family-name:var(--font-data)] text-[15px] font-semibold tracking-wide text-white uppercase">
+                  {k.baslik}
+                </span>
+                {k.metin.trim() && (
+                  <span
+                    aria-hidden
+                    className="flex-none text-muted-dark transition-transform group-open:rotate-45"
+                  >
+                    +
+                  </span>
+                )}
+              </summary>
+              {k.metin.trim() && (
+                <p className="px-4 pb-3 pl-[52px] text-[15px] leading-relaxed text-[#cfe0d5]">
+                  {k.metin}
+                </p>
+              )}
+            </details>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/reveal";
+import { VeriUyarisi } from "@/components/veri-uyarisi";
 import { SITE } from "@/lib/site";
-import { getDuyurular } from "@/lib/veri";
+import { getDuyurularSonucu } from "@/lib/veri";
 
 export const revalidate = 60;
 
@@ -26,7 +27,9 @@ function tarihYaz(tarih: string | null) {
 }
 
 export default async function KurallarVeDuyurularSayfasi() {
-  const hepsi = await getDuyurular();
+  const sonuc = await getDuyurularSonucu();
+  const hataVar = sonuc.durum === "hata";
+  const hepsi = sonuc.veri;
   const duyurular = hepsi.filter((d) => d.tur === "duyuru");
   const kurallar = hepsi.filter((d) => d.tur === "kural");
 
@@ -57,13 +60,13 @@ export default async function KurallarVeDuyurularSayfasi() {
               href="#duyurular"
               className="rounded-sm border-2 border-white/35 px-5 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-brand-lite hover:text-brand-lite"
             >
-              Duyurular ({duyurular.length})
+              Duyurular{hataVar ? "" : ` (${duyurular.length})`}
             </a>
             <a
               href="#kurallar"
               className="rounded-sm border-2 border-white/35 px-5 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-gold hover:text-gold"
             >
-              Lig Kuralları ({kurallar.length})
+              Lig Kuralları{hataVar ? "" : ` (${kurallar.length})`}
             </a>
           </nav>
         </div>
@@ -76,7 +79,9 @@ export default async function KurallarVeDuyurularSayfasi() {
           <h2 className="display text-[clamp(1.8rem,5vw,2.8rem)]">Duyurular</h2>
         </Reveal>
 
-        {duyurular.length === 0 ? (
+        {hataVar ? (
+          <VeriUyarisi metin="Sunucu veritabanına ulaşamadı, bu yüzden duyurular şu an gösterilemiyor. Birkaç dakika içinde kendiliğinden düzelir; sayfayı yenilemen yeterli." />
+        ) : duyurular.length === 0 ? (
           <p className="rounded border border-line bg-white p-6 text-muted">
             Henüz duyuru girilmedi. Yeni duyurular bu sayfada tarih sırasıyla görünecek.
           </p>
@@ -157,7 +162,9 @@ export default async function KurallarVeDuyurularSayfasi() {
             </p>
           </Reveal>
 
-          {kurallar.length === 0 ? (
+          {hataVar ? (
+            <VeriUyarisi metin="Kurallar şu an veritabanından okunamıyor. Birkaç dakika içinde kendiliğinden düzelir." />
+          ) : kurallar.length === 0 ? (
             <p className="rounded border border-line bg-paper p-6 text-muted">
               Kurallar henüz girilmedi.
             </p>

@@ -20,10 +20,6 @@ const GRUPLAR: { ad: string; not?: string; anahtarlar: string[] }[] = [
     anahtarlar: ["hero_baslik", "hero_vurgu", "hero_metin", "hero_buton1", "hero_buton2"],
   },
   {
-    ad: "Anasayfa — kampanya bandı",
-    anahtarlar: ["kampanya_baslik", "kampanya_vurgu", "kampanya_metin", "kampanya_buton"],
-  },
-  {
     ad: "Katıl sayfası",
     not: "Madde listesinde her satır ayrı bir madde olur.",
     anahtarlar: ["katil_baslik", "katil_metin", "katil_maddeler"],
@@ -67,6 +63,13 @@ const GRUPLAR: { ad: string; not?: string; anahtarlar: string[] }[] = [
     ],
   },
 ];
+
+/**
+ * Sitede artık kullanılmayan ayarlar. Veritabanında satırları dursa bile
+ * panelde "Tanımsız ayarlar" altında görünmesinler diye gizleniyor.
+ * (Anasayfadaki kampanya bandı yerini "Yaklaşan maçlar + duyurular"a bıraktı.)
+ */
+const KALDIRILAN = new Set(["kampanya_baslik", "kampanya_vurgu", "kampanya_metin", "kampanya_buton"]);
 
 /** Bu alanlar kısa olduğu için tek satırlık girdi kullanır. */
 const TEK_SATIR = new Set(["canli_yayin_metin", "katki_metin"]);
@@ -123,7 +126,9 @@ export default function AdminAyarlar() {
   }
 
   const bilinen = new Set(GRUPLAR.flatMap((g) => g.anahtarlar));
-  const digerleri = ayarlar.filter((a) => !bilinen.has(a.anahtar)).map((a) => a.anahtar);
+  const digerleri = ayarlar
+    .filter((a) => !bilinen.has(a.anahtar) && !KALDIRILAN.has(a.anahtar))
+    .map((a) => a.anahtar);
   const tumGruplar = digerleri.length
     ? [...GRUPLAR, { ad: "Tanımsız ayarlar", anahtarlar: digerleri }]
     : GRUPLAR;

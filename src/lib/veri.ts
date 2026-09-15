@@ -168,8 +168,8 @@ export type Gorsel = {
 };
 
 /**
- * Sabit yerleşimli görsellerin tamamı (hero, kampanya…) tek sorguda.
- * Anasayfa üç ayrı slot kullanıyor; ayrı ayrı sorulsaydı üç istek olurdu.
+ * Sabit yerleşimli görsellerin tamamı (hero, Biz Kimiz…) tek sorguda.
+ * Birden fazla slot soran sayfa olursa ayrı ayrı istek atılmasın diye.
  */
 const getSlotGorselleri = cache(
   hafizala("slot-gorselleri", async (): Promise<Record<string, string>> => {
@@ -192,7 +192,7 @@ const getSlotGorselleri = cache(
   }),
 );
 
-/** Sitede sabit bir yere yerleşen görsel (hero, kampanya…). Yoksa yedek dosya. */
+/** Sitede sabit bir yere yerleşen görsel (hero, Biz Kimiz…). Yoksa yedek dosya. */
 export async function getSlotGorseli(slot: string, yedek: string): Promise<string> {
   const hepsi = await getSlotGorselleri();
   return hepsi[slot] ?? yedek;
@@ -257,11 +257,6 @@ export const VARSAYILAN_ICERIK = {
     "SahaBizim Ligi'nin puan durumu, fikstürü ve haftanın maçları tek yerde. Takımını kur, maçını ayarla, gerisini sahaya bırak.",
   hero_buton1: "Puan Durumu",
   hero_buton2: "Takımını Kaydet",
-  kampanya_baslik: "Spor hayattır,",
-  kampanya_vurgu: "bağımlılık değil",
-  kampanya_metin:
-    "Sahada geçen her dakika, kaybedilmeyen bir dakikadır. Gençleri madde ve alkol bağımlılığına karşı sahaya çağırıyoruz — tribünde değil, oyunun içinde.",
-  kampanya_buton: "Sahaya Katıl",
   katil_baslik: "Takımını lige yaz",
   katil_metin:
     "Formu doldur, WhatsApp'tan bize ulaşsın. Aynı gün içinde dönüş yapıyoruz: fikstür, saha ve ödeme detaylarını orada konuşuyoruz.",

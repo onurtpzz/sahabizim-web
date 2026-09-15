@@ -6,10 +6,12 @@ import { Reveal } from "@/components/reveal";
 import { Sayac } from "@/components/sayac";
 import { SosyalIcerikler } from "@/components/sosyal-icerikler";
 import { VeriUyarisi } from "@/components/veri-uyarisi";
+import { sonDuyurular, yaklasanMaclar, YaklasanMaclar } from "@/components/yaklasan-maclar";
 import { haftaninOzeti } from "@/lib/hafta";
 import {
+  getDuyurular,
   getGaleri,
-  getMaclar,
+  getMaclarSonucu,
   getIcerik,
   getLigOzeti,
   getPuanDurumuSonucu,
@@ -28,23 +30,23 @@ const YEDEK_GALERI = [
 ];
 
 export default async function Anasayfa() {
-  const [sonuc, ozet, icerik, heroGorsel, kampanyaGorsel, kampanyaYan, galeri, sosyal] =
+  const [sonuc, ozet, icerik, heroGorsel, galeri, sosyal, maclarSonucu, duyurular] =
     await Promise.all([
-    getPuanDurumuSonucu(),
-    getLigOzeti(),
-    getIcerik(),
-    getSlotGorseli("hero", "/images/hero-saha.jpg"),
-    getSlotGorseli("kampanya", "/images/atkilar.jpg"),
-    getSlotGorseli("kampanya-yan", "/images/atki.jpg"),
-    getGaleri(YEDEK_GALERI),
-    getSosyalIcerikler(6),
-  ]);
+      getPuanDurumuSonucu(),
+      getLigOzeti(),
+      getIcerik(),
+      getSlotGorseli("hero", "/images/hero-saha.jpg"),
+      getGaleri(YEDEK_GALERI),
+      getSosyalIcerikler(6),
+      getMaclarSonucu(),
+      getDuyurular(),
+    ]);
 
   const satirlar = sonuc.veri;
   // Veri okunamadıysa rakam basmıyoruz: "0 takım, 0 gol" güncel sanılabilir.
   const hataVar = sonuc.durum === "hata";
 
-  const maclar = await getMaclar();
+  const maclar = maclarSonucu.veri;
   const hafta = hataVar ? null : haftaninOzeti(maclar, satirlar, ozet.takimSayisi);
 
   return (
@@ -143,40 +145,13 @@ export default async function Anasayfa() {
         </Reveal>
       </section>
 
-      {/* KAMPANYA */}
-      <section className="relative overflow-hidden bg-ink text-white">
-        <div className="absolute inset-0">
-          <Image src={kampanyaGorsel} alt="" fill sizes="100vw" className="object-cover opacity-30" />
-          <div className="absolute inset-0 bg-linear-to-r from-ink via-ink/70 to-ink/40" />
-        </div>
-        <div className="relative mx-auto grid w-full max-w-[1180px] items-center gap-9 px-5 py-14 md:grid-cols-[1.15fr_0.85fr] md:py-20">
-          <Reveal>
-            <p className="eyebrow text-gold">Kampanya</p>
-            <h2 className="display mt-3 text-[clamp(2rem,5.5vw,3.6rem)]">
-              {icerik.kampanya_baslik}
-              <br />
-              <em className="not-italic text-gold">{icerik.kampanya_vurgu}</em>
-            </h2>
-            <p className="mt-4 max-w-[48ch] text-[#cfe0d5]">{icerik.kampanya_metin}</p>
-            <Link
-              href="/katil"
-              className="mt-6 inline-block rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
-            >
-              {icerik.kampanya_buton}
-            </Link>
-          </Reveal>
-          <Reveal delay={120}>
-            <Image
-              src={kampanyaYan}
-              alt="Atkısını kaldıran taraftar"
-              width={700}
-              height={470}
-              sizes="(max-width: 768px) 100vw, 40vw"
-              className="rounded border-[6px] border-white/10"
-            />
-          </Reveal>
-        </div>
-      </section>
+      {/* YAKLAŞAN MAÇLAR + DUYURULAR (eski kampanya bandının yeri) */}
+      <YaklasanMaclar
+        maclar={yaklasanMaclar(maclar)}
+        duyurular={sonDuyurular(duyurular)}
+        fiksturHatasi={maclarSonucu.durum === "hata"}
+        arkaPlan="/images/atkilar.jpg"
+      />
 
       {/* GALERİ */}
       <section className="mx-auto w-full max-w-[1180px] px-5 py-14 md:py-20">

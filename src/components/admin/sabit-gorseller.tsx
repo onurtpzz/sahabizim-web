@@ -19,13 +19,11 @@ const SLOTLAR = [
     ad: "Anasayfa büyük görsel",
     tavsiye: "1920 × 1080 px, koyu bir saha/stadyum fotoğrafı",
   },
-  { deger: "kampanya", ad: "Kampanya bandı arka planı", tavsiye: "1600 × 900 px" },
-  { deger: "kampanya-yan", ad: "Kampanya bandı yan görseli", tavsiye: "1400 × 950 px" },
   { deger: "bizkimiz", ad: "Biz Kimiz sayfası üst görseli", tavsiye: "1600 × 900 px" },
 ];
 
 /**
- * Sitenin sabit yerleşimli görselleri (hero, kampanya bandı, Biz Kimiz).
+ * Sitenin sabit yerleşimli görselleri (hero, Biz Kimiz).
  *
  * Ayarlar sayfasının en altında duruyor: yılda birkaç kez dokunulan bir iş,
  * kendi menü sekmesini hak etmiyordu.

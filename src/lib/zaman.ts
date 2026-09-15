@@ -98,3 +98,15 @@ export function gunBasligi(gun: string, yil = false): string {
     ...(yil ? { year: "numeric" as const } : {}),
   });
 }
+
+/** Tarih rozeti parçaları: "20" · "Eyl" · "Pazar". `gun` "2026-09-20" biçiminde. */
+export function tarihRozeti(gun: string) {
+  const d = new Date(`${gun}T12:00:00Z`);
+  const bicim = (o: Intl.DateTimeFormatOptions) =>
+    d.toLocaleDateString("tr-TR", { timeZone: LIG_SAAT_DILIMI, ...o });
+  return {
+    gun: bicim({ day: "2-digit" }),
+    ay: bicim({ month: "short" }).replace(".", ""),
+    haftaGunu: bicim({ weekday: "long" }),
+  };
+}

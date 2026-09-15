@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
  * İçeriği ikiye ayrıldı:
  *   • Galeri (yükleme, sıralama, hazır fotoğraf anahtarı) → Fotoğraflar sekmesi,
  *     "Site galerisi" bölümü
- *   • Sitedeki sabit görseller (hero, kampanya, Biz Kimiz) → Ayarlar sayfasının
+ *   • Sitedeki sabit görseller (hero, Biz Kimiz) → Ayarlar sayfasının
  *     en altı
  *
  * Sayfa tamamen silinmedi: panelin eski adresi yer imlerinde veya tarayıcı

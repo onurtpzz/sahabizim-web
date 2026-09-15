@@ -444,12 +444,30 @@ export async function ayarlariGetir() {
   return (data ?? []) as { anahtar: string; deger: string | null; aciklama: string | null }[];
 }
 
-export async function ayarKaydet(anahtar: string, deger: string) {
-  const { error } = await db()
+/**
+ * Ayarı yazar; satır yoksa açar (upsert).
+ *
+ * Neden upsert: anasayfanın yeni bölüm metinleri için veritabanında henüz satır
+ * yok. Eskiden yalnız `update` vardı ve satırı olmayan ayar sessizce hiçbir yere
+ * yazılmıyordu. `ayarlar` tablosundaki "yonetici yazar" politikası `for all`
+ * olduğu için ekleme de yetkili (01-semasi.sql).
+ *
+ * `.select`: RLS yazmayı reddederse PostgREST hata DÖNDÜRMÜYOR, yalnız 0 satır
+ * geliyor — boş dönerse hata sayıyoruz.
+ */
+export async function ayarKaydet(anahtar: string, deger: string, aciklama?: string) {
+  const satir: Record<string, string> = {
+    anahtar,
+    deger,
+    guncellendi: new Date().toISOString(),
+  };
+  if (aciklama) satir.aciklama = aciklama;
+  const { data, error } = await db()
     .from("ayarlar")
-    .update({ deger, guncellendi: new Date().toISOString() })
-    .eq("anahtar", anahtar);
+    .upsert(satir, { onConflict: "anahtar" })
+    .select("anahtar");
   if (error) throw error;
+  if (!data?.length) throw new Error(`"${anahtar}" kaydedilemedi — yetki reddedildi.`);
 }
 
 // ---------------------------------------------------------------- talepler

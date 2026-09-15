@@ -98,12 +98,12 @@ export default async function Anasayfa() {
           {/* "3 Branş" kaldırıldı: ligde yalnız futbol var, sayı yanıltıcıydı. */}
           <dl className="mx-auto grid w-full max-w-[1180px] grid-cols-3 px-5">
             {[
-              { s: ozet.takimSayisi, l: "Takım" },
-              { s: ozet.toplamMac, l: "Oynanan Maç" },
-              { s: ozet.toplamGol, l: "Gol" },
+              { s: ozet.takimSayisi, l: icerik.sayac_takim },
+              { s: ozet.toplamMac, l: icerik.sayac_mac },
+              { s: ozet.toplamGol, l: icerik.sayac_gol },
             ].map((x, i) => (
               <div
-                key={x.l}
+                key={i}
                 className={`py-6 text-center ${i < 2 ? "border-r border-white/15" : ""}`}
               >
                 <dd className="display text-[clamp(1.9rem,5vw,2.9rem)] text-white">
@@ -120,20 +120,32 @@ export default async function Anasayfa() {
       </section>
 
       {/* HAFTANIN ÖZETİ */}
-      {hafta && <HaftaninOzeti ozet={hafta} />}
+      {hafta && (
+        <HaftaninOzeti
+          ozet={hafta}
+          metin={{
+            baslik: icerik.hafta_baslik,
+            kartMac: icerik.hafta_kart_mac,
+            kartYukselen: icerik.hafta_kart_yukselen,
+            kartSurpriz: icerik.hafta_kart_surpriz,
+            kartGol: icerik.hafta_kart_gol,
+            link: icerik.hafta_link,
+          }}
+        />
+      )}
 
       {/* PUAN DURUMU */}
       <section className="mx-auto w-full max-w-[1180px] px-5 py-14 md:py-20">
         <Reveal className="mb-7 flex flex-wrap items-end justify-between gap-5">
           <div>
-            <p className="eyebrow text-brand">Lig</p>
-            <h2 className="display text-[clamp(1.9rem,5vw,3rem)]">Puan Durumu</h2>
+            <p className="eyebrow text-brand">{icerik.puan_etiket}</p>
+            <h2 className="display text-[clamp(1.9rem,5vw,3rem)]">{icerik.puan_baslik}</h2>
           </div>
           <Link
             href="/puan-durumu"
             className="border-b-2 border-brand pb-0.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-brand"
           >
-            Tüm tabloyu gör <span aria-hidden className="ok">→</span>
+            {icerik.puan_link} <span aria-hidden className="ok">→</span>
           </Link>
         </Reveal>
         <Reveal>
@@ -152,20 +164,34 @@ export default async function Anasayfa() {
         fiksturHatasi={maclarSonucu.durum === "hata"}
         duyuruHatasi={duyurularSonucu.durum === "hata"}
         arkaPlan="/images/atkilar.jpg"
+        metin={{
+          yaklasanEtiket: icerik.yaklasan_etiket,
+          yaklasanBaslik: icerik.yaklasan_baslik,
+          yaklasanVurgu: icerik.yaklasan_vurgu,
+          yaklasanLink: icerik.yaklasan_link,
+          yaklasanBos: icerik.yaklasan_bos,
+          duyuruEtiket: icerik.duyuru_etiket,
+          duyuruBaslik: icerik.duyuru_baslik,
+          duyuruLink: icerik.duyuru_link,
+          duyuruBos: icerik.duyuru_bos,
+          kuralEtiket: icerik.kural_etiket,
+          kuralBaslik: icerik.kural_baslik,
+          kuralLink: icerik.kural_link,
+        }}
       />
 
       {/* GALERİ */}
       <section className="mx-auto w-full max-w-[1180px] px-5 py-14 md:py-20">
         <Reveal className="mb-7 flex flex-wrap items-end justify-between gap-5">
           <div>
-            <p className="eyebrow text-brand">Saha içi</p>
-            <h2 className="display text-[clamp(1.9rem,5vw,3rem)]">Galeri</h2>
+            <p className="eyebrow text-brand">{icerik.galeri_etiket}</p>
+            <h2 className="display text-[clamp(1.9rem,5vw,3rem)]">{icerik.galeri_baslik}</h2>
           </div>
           <Link
             href="/galeri"
             className="border-b-2 border-brand pb-0.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-brand"
           >
-            Tüm albümler <span aria-hidden className="ok">→</span>
+            {icerik.galeri_link} <span aria-hidden className="ok">→</span>
           </Link>
         </Reveal>
         <Reveal className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -193,7 +219,7 @@ export default async function Anasayfa() {
         <section className="border-t border-line bg-white">
           <div className="mx-auto w-full max-w-[1180px] px-5 py-14 md:py-20">
             <Reveal className="mb-7">
-              <p className="eyebrow text-brand">Sosyal medya</p>
+              <p className="eyebrow text-brand">{icerik.sosyal_etiket}</p>
               <h2 className="display text-[clamp(1.9rem,5vw,3rem)]">{icerik.sosyal_baslik}</h2>
               <p className="mt-3 max-w-[60ch] text-muted">{icerik.sosyal_metin}</p>
             </Reveal>
@@ -208,14 +234,14 @@ export default async function Anasayfa() {
       <section className="border-t border-line bg-white">
         <div className="mx-auto grid w-full max-w-[1180px] items-center gap-8 px-5 py-14 md:grid-cols-2 md:py-20">
           <Reveal>
-            <p className="eyebrow text-brand">Aramıza Katıl</p>
+            <p className="eyebrow text-brand">{icerik.katil_etiket}</p>
             <h2 className="display mt-2 text-[clamp(1.9rem,5vw,3rem)]">{icerik.katil_baslik}</h2>
             <p className="mt-3 max-w-[50ch] text-muted">{icerik.katil_metin}</p>
             <Link
               href="/katil"
               className="btn-parla mt-6 inline-block rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
             >
-              Başvuru Formu
+              {icerik.katil_buton}
             </Link>
           </Reveal>
           <Reveal delay={100} className="rounded border border-line bg-paper p-6">

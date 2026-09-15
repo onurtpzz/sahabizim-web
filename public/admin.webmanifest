@@ -1,0 +1,23 @@
+{
+  "id": "/admin",
+  "name": "SahaBizim Yönetim",
+  "short_name": "SB Yönetim",
+  "description": "SahaBizim Ligi yönetim paneli — skor, takım, duyuru ve fotoğraf yönetimi.",
+  "lang": "tr",
+  "dir": "ltr",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b2a16",
+  "theme_color": "#04150b",
+  "icons": [
+    { "src": "/icons/admin-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/admin-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/admin-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Skor gir", "url": "/admin/maclar", "icons": [{ "src": "/icons/admin-192.png", "sizes": "192x192" }] },
+    { "name": "Duyuru ekle", "url": "/admin/duyurular", "icons": [{ "src": "/icons/admin-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Anton, Manrope, Barlow_Semi_Condensed } from "next/font/google";
 import "./globals.css";
+import { PwaKaydi } from "@/components/pwa/pwa-kaydi";
 import { SITE } from "@/lib/site";
 
 const anton = Anton({
@@ -51,6 +53,19 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+/** Telefonda adres çubuğu ve yüklü uygulamanın durum çubuğu koyu yeşil. */
+export const viewport: Viewport = {
+  themeColor: "#04150b",
+  viewportFit: "cover",
+};
+
+/**
+ * Chrome "yüklenebilir" olayını sayfa açılır açılmaz gönderebiliyor — React
+ * hazır olmadan. Bu satır onu yakalayıp saklıyor; `@/lib/pwa` oradan okur.
+ */
+const YUKLEME_YAKALAYICI =
+  'window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__sbYukleme=e;});';
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -59,7 +74,15 @@ export default function RootLayout({
       lang="tr"
       className={`${anton.variable} ${manrope.variable} ${barlow.variable}`}
     >
-      <body className="antialiased">{children}</body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: YUKLEME_YAKALAYICI }} />
+      </head>
+      <body className="antialiased">
+        {children}
+        <PwaKaydi />
+        {/* Vercel Analytics — ziyaretçi ve sayfa görüntüleme sayımı (çerez kullanmaz). */}
+        <Analytics />
+      </body>
     </html>
   );
 }

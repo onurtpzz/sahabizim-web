@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04150b">
+<title>Bağlantı yok · SahaBizim</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    background: #04150b radial-gradient(ellipse 80% 50% at 50% -10%, rgba(23,163,58,.25), transparent 70%);
+    color: #e7f2ea; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; text-align: center;
+  }
+  .kutu { max-width: 380px; }
+  img { width: 120px; height: 120px; filter: drop-shadow(0 0 18px rgba(74,222,128,.35)); animation: suzul 3.2s ease-in-out infinite; }
+  h1 { font-size: 28px; letter-spacing: .02em; text-transform: uppercase; margin: 22px 0 8px; }
+  h1 span { color: #4ade80; text-shadow: 0 0 14px rgba(74,222,128,.55); }
+  p { color: #9cb5a4; line-height: 1.55; margin: 0 0 22px; }
+  button {
+    font: 700 15px/1 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase;
+    background: #17a33a; color: #fff; border: 0; border-radius: 3px; padding: 15px 26px; min-height: 48px;
+    box-shadow: 0 10px 24px -10px rgba(23,163,58,.8);
+  }
+  button:active { transform: scale(.97); }
+  @keyframes suzul { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+  @media (prefers-reduced-motion: reduce) { img { animation: none } }
+</style>
+</head>
+<body>
+  <main class="kutu">
+    <img src="/images/logo-kucuk.png" alt="SahaBizim">
+    <h1>Bağlantı <span>yok</span></h1>
+    <p id="metin">Bu sayfayı daha önce açmadığın için internet olmadan gösteremiyoruz. Bağlantı gelince yeniden dene.</p>
+    <button type="button" onclick="location.reload()">Yeniden dene</button>
+  </main>
+  <script>
+    // Yönetim paneli bilerek çevrimdışı çalışmıyor — eski veri üzerinde skor girilmesin.
+    if (location.pathname.indexOf("/admin") === 0) {
+      document.getElementById("metin").textContent =
+        "Yönetim paneli internet olmadan çalışmaz; eski bir kopya üzerinde kayıt yapılmasın diye bilerek böyle. Bağlantı gelince yeniden dene.";
+    }
+    addEventListener("online", function () { location.reload(); });
+  </script>
+</body>
+</html>

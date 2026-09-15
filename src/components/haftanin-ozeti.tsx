@@ -66,13 +66,23 @@ function Kart({
   );
 }
 
-export function HaftaninOzeti({ ozet }: { ozet: HaftaOzeti }) {
+/** Panelden değişen başlıklar (Ayarlar → Anasayfa · Haftanın özeti). */
+export type HaftaMetinleri = {
+  baslik: string;
+  kartMac: string;
+  kartYukselen: string;
+  kartSurpriz: string;
+  kartGol: string;
+  link: string;
+};
+
+export function HaftaninOzeti({ ozet, metin }: { ozet: HaftaOzeti; metin: HaftaMetinleri }) {
   const kartlar: React.ReactNode[] = [];
 
   if (ozet.macinMaci) {
     const m = ozet.macinMaci;
     kartlar.push(
-      <Kart key="mac" etiket="Haftanın maçı" renk="brand">
+      <Kart key="mac" etiket={metin.kartMac} renk="brand">
         <div>
           <p className="text-[15px] text-[#cfe0d5]">
             {m.ev.sira && m.dep.sira
@@ -88,7 +98,7 @@ export function HaftaninOzeti({ ozet }: { ozet: HaftaOzeti }) {
   if (ozet.yukselen) {
     const y = ozet.yukselen;
     kartlar.push(
-      <Kart key="yukselen" etiket="Haftanın yükseleni" renk="gold">
+      <Kart key="yukselen" etiket={metin.kartYukselen} renk="gold">
         <div>
           <Link
             href={`/takim/${y.slug}`}
@@ -109,7 +119,7 @@ export function HaftaninOzeti({ ozet }: { ozet: HaftaOzeti }) {
   if (ozet.surpriz) {
     const s = ozet.surpriz;
     kartlar.push(
-      <Kart key="surpriz" etiket="Haftanın sürprizi" renk="lose">
+      <Kart key="surpriz" etiket={metin.kartSurpriz} renk="lose">
         <div>
           <p className="text-[15px] text-[#cfe0d5]">
             <Link
@@ -129,7 +139,7 @@ export function HaftaninOzeti({ ozet }: { ozet: HaftaOzeti }) {
   if (ozet.enGollu) {
     const g = ozet.enGollu;
     kartlar.push(
-      <Kart key="gol" etiket="En gollü maç" renk="beyaz">
+      <Kart key="gol" etiket={metin.kartGol} renk="beyaz">
         <div>
           <p className="text-[15px] text-[#cfe0d5]">
             Doksan dakikada <strong className="text-white">{g.toplamGol} gol</strong> çıktı.
@@ -150,7 +160,7 @@ export function HaftaninOzeti({ ozet }: { ozet: HaftaOzeti }) {
             <p className="eyebrow text-brand-lite">
               {tarihAraligi(ozet.baslangic, ozet.bitis)}
             </p>
-            <h2 className="display mt-2 text-[clamp(1.9rem,5vw,3rem)]">Haftanın Özeti</h2>
+            <h2 className="display mt-2 text-[clamp(1.9rem,5vw,3rem)]">{metin.baslik}</h2>
           </div>
           <p className="font-[family-name:var(--font-data)] text-[15px] text-muted-dark">
             <span className="display mr-1 text-2xl text-white">{ozet.macSayisi}</span> maç ·
@@ -164,7 +174,7 @@ export function HaftaninOzeti({ ozet }: { ozet: HaftaOzeti }) {
 
         <p className="mt-4 text-sm text-muted-dark">
           <Link href="/fikstur" className="font-semibold text-brand-lite hover:underline">
-            Tüm maçlar <span aria-hidden className="ok">→</span>
+            {metin.link} <span aria-hidden className="ok">→</span>
           </Link>
         </p>
       </div>

@@ -249,54 +249,12 @@ export const getAyarlar = cache(
   }),
 );
 
-/** Varsayılan metinler — veritabanında karşılığı yoksa bunlar kullanılır. */
-export const VARSAYILAN_ICERIK = {
-  hero_baslik: "Sahada birlik,",
-  hero_vurgu: "sporda özgürlük",
-  hero_metin:
-    "SahaBizim Ligi'nin puan durumu, fikstürü ve haftanın maçları tek yerde. Takımını kur, maçını ayarla, gerisini sahaya bırak.",
-  hero_buton1: "Puan Durumu",
-  hero_buton2: "Takımını Kaydet",
-  katil_baslik: "Takımını lige yaz",
-  katil_metin:
-    "Formu doldur, WhatsApp'tan bize ulaşsın. Aynı gün içinde dönüş yapıyoruz: fikstür, saha ve ödeme detaylarını orada konuşuyoruz.",
-  katil_maddeler:
-    "Takım başına sezonluk tek kayıt\nMaçlar hafta içi akşam ve hafta sonu\nSkorlar girildiği anda puan durumuna işler\nTakımının kendi sayfası ve istatistikleri olur",
-  iletisim_metin: "Lig, maç programı veya saha ile ilgili her konuda yazabilirsin.",
-  galeri_metin: "Maç kareleri panelden yüklendikçe bu sayfa albümlere ayrılacak.",
-  footer_metin: "Sporu sadece bir oyun değil, bir yaşam biçimi olarak görenlerin sahası.",
-  site_aciklama: "SahaBizim Ligi'nin güncel puan durumu, fikstürü ve haftanın maçları.",
-  bizkimiz_baslik: "Ruhum sahada",
-  bizkimiz_ozet: "Sporu bir oyun değil, bir yaşam biçimi olarak görenlerin sahası.",
-  bizkimiz_metin:
-    "SahaBizim, İstanbul'da halı saha futbolunu düzenli bir lig düzenine kavuşturmak için kuruldu. Amacımız basit: maç ayarlamak için grup grup mesaj dolaşmasın, kim kaç puanda belli olsun, oynamak isteyen herkes bir takım bulabilsin.\n\nBugün tek çatı altında altmışın üzerinde takım var. Her hafta sahaya çıkıyor, sonuçları giriyor, puan durumunu güncelliyoruz.\n\nBizim için asıl mesele skor değil, sahada geçen o iki saat. Gençleri madde ve alkol bağımlılığına karşı sahaya çağırmamızın sebebi de bu: oyunun kendisi en iyi korumadır.",
-  bizkimiz_deger1: "Herkese açık|Kadro, tecrübe veya bütçe fark etmez. Takımını kur, gel.",
-  bizkimiz_deger2: "Düzenli lig|Fikstür, skor, puan durumu — hepsi kayıt altında ve herkese açık.",
-  bizkimiz_deger3: "Saha içi saygı|Rekabet sahada kalır. Küfür, kavga ve ayrımcılık hoş görülmez.",
-  bizkimiz_etkinlik_baslik: "Sadece maç değil",
-  bizkimiz_etkinlik_metin:
-    "SahaBizim yalnızca bir lig değil; sahanın dışında da bir arada olan bir topluluk. Yıl boyunca düzenlediğimiz etkinliklere bütün takımlar davetli.",
-  bizkimiz_etkinlikler:
-    "Piknik|Sezon arası, ailelerin de geldiği gün boyu süren buluşmalar.\nKamp|Doğada iki gün: yürüyüş, maç ve gece sohbeti.\nMangal|Maç sonrası klasikleşen mangal akşamları.\nGönüllü AFAD arama-kurtarma ekibi|Afet durumunda görev almak üzere eğitim alan gönüllü ekibimiz.",
-  canli_yayin_aktif: "evet",
-  canli_yayin_metin: "Haftanın maçlarını canlı yayınlıyoruz",
-  canli_yayin_buton: "Yayına git",
-  canli_yayin_link: "",
-  canli_yayin_aciklama:
-    "Seçtiğimiz maçları YouTube ve Instagram üzerinden canlı yayınlıyoruz. Yayın günü ve saati sosyal medya hesaplarımızdan duyurulur.",
-  katki_metin: "Onur Topuz'un katkılarıyla",
-  varsayilan_gorseller: "evet",
-  sosyal_baslik: "Sahadan kareler",
-  sosyal_metin: "Instagram ve YouTube'da paylaştığımız son içerikler.",
-  whatsapp: "905363771767",
-  telefon: "0536 377 17 67",
-  yetkili: "Hayrullah Can",
-  instagram: "https://www.instagram.com/",
-  youtube: "https://www.youtube.com/",
-  tiktok: "https://www.tiktok.com/",
-} as const;
+// Varsayılan metinler ayrı dosyada: panel (tarayıcı) de okuyor, bu dosya ise
+// sunucuya özgü önbellek katmanı içeriyor.
+import { VARSAYILAN_ICERIK, type IcerikAnahtari } from "@/lib/icerik-varsayilan";
+export { VARSAYILAN_ICERIK, type IcerikAnahtari };
 
-export type IcerikAnahtari = keyof typeof VARSAYILAN_ICERIK;
+
 
 /**
  * Site metinleri: veritabanındaki değerler varsayılanların üzerine yazılır.

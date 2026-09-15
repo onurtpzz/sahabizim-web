@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { YukleDugmesi } from "@/components/pwa/yukleme";
 import { SITE } from "@/lib/site";
 
 const MENU = [
@@ -124,6 +125,9 @@ export function SiteHeader() {
                   </Link>
                 </li>
               ))}
+              <li className="menu-madde empty:hidden" style={{ "--sira": MENU.length } as React.CSSProperties}>
+                <YukleDugmesi gorunum="menu" tiklaninca={() => setAcik(false)} />
+              </li>
             </ul>
             <Link
               href="/katil"

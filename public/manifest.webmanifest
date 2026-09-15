@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "SahaBizim Ligi",
+  "short_name": "SahaBizim",
+  "description": "SahaBizim Ligi'nin puan durumu, fikstürü, duyuruları ve takım sayfaları.",
+  "lang": "tr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#04150b",
+  "theme_color": "#04150b",
+  "categories": ["sports"],
+  "icons": [
+    { "src": "/icons/site-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/site-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/site-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Puan Durumu", "url": "/puan-durumu", "icons": [{ "src": "/icons/site-192.png", "sizes": "192x192" }] },
+    { "name": "Fikstür", "url": "/fikstur", "icons": [{ "src": "/icons/site-192.png", "sizes": "192x192" }] },
+    { "name": "Duyurular", "url": "/kurallar-ve-duyurular", "icons": [{ "src": "/icons/site-192.png", "sizes": "192x192" }] }
+  ]
+}

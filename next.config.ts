@@ -33,6 +33,17 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/**": ["./src/og-fontlari/**"],
   },
+
+  // Service worker ve manifestler önbelleğe takılmasın: güncelleme telefonlara
+  // ancak tarayıcı yeni sw.js'i görünce ulaşır.
+  async headers() {
+    const tazeKal = [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }];
+    return [
+      { source: "/sw.js", headers: [...tazeKal, { key: "Service-Worker-Allowed", value: "/" }] },
+      { source: "/manifest.webmanifest", headers: tazeKal },
+      { source: "/admin.webmanifest", headers: tazeKal },
+    ];
+  },
 };
 
 export default nextConfig;

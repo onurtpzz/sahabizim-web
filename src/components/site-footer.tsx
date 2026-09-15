@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { YukleDugmesi } from "@/components/pwa/yukleme";
 import { SITE } from "@/lib/site";
 import { getIcerik } from "@/lib/veri";
 
@@ -49,6 +50,7 @@ export async function SiteFooter() {
             </h2>
             <ul className="grid gap-2 font-[family-name:var(--font-data)] text-base">
               <li><Link href="/katil" className="alt-link">Aramıza Katıl</Link></li>
+              <li className="empty:hidden"><YukleDugmesi gorunum="altbilgi" /></li>
               <li><Link href="/iletisim" className="alt-link">{icerik.telefon}</Link></li>
               <li>
                 <a href={icerik.instagram} className="alt-link">Instagram</a>

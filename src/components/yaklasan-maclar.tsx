@@ -39,13 +39,31 @@ export function yaklasanMaclar(maclar: FiksturMaci[], gunAdedi = MAC_GUNU_ADEDI)
 const BAGLANTI =
   "border-b-2 pb-0.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition";
 
+/** Panelden değişen başlıklar (Ayarlar → Anasayfa · Yaklaşan maçlar / Duyurular). */
+export type BantMetinleri = {
+  yaklasanEtiket: string;
+  yaklasanBaslik: string;
+  yaklasanVurgu: string;
+  yaklasanLink: string;
+  yaklasanBos: string;
+  duyuruEtiket: string;
+  duyuruBaslik: string;
+  duyuruLink: string;
+  duyuruBos: string;
+  kuralEtiket: string;
+  kuralBaslik: string;
+  kuralLink: string;
+};
+
 export function YaklasanMaclar({
   maclar,
   duyuruKayitlari,
   fiksturHatasi,
   duyuruHatasi,
   arkaPlan,
+  metin,
 }: {
+  metin: BantMetinleri;
   maclar: FiksturMaci[];
   /** Duyuru ve kuralların tamamı; burada ayrılıp kısaltılıyor. */
   duyuruKayitlari: Duyuru[];
@@ -90,16 +108,16 @@ export function YaklasanMaclar({
         <div>
           <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="eyebrow text-gold">Fikstür</p>
+              <p className="eyebrow text-gold">{metin.yaklasanEtiket}</p>
               <h2 className="display mt-2 text-[clamp(2rem,5.5vw,3.2rem)]">
-                Yaklaşan <em className="not-italic text-gold">Maçlar</em>
+                {metin.yaklasanBaslik} <em className="not-italic text-gold">{metin.yaklasanVurgu}</em>
               </h2>
             </div>
             <Link
               href="/fikstur"
               className={`${BAGLANTI} border-gold text-gold hover:border-white hover:text-white`}
             >
-              Tüm fikstür <span aria-hidden className="ok">→</span>
+              {metin.yaklasanLink} <span aria-hidden className="ok">→</span>
             </Link>
           </Reveal>
 
@@ -107,7 +125,7 @@ export function YaklasanMaclar({
             {fiksturHatasi ? (
               <BosKutu metin="Fikstür şu an okunamıyor. Birkaç dakika içinde kendiliğinden düzelir." />
             ) : maclar.length === 0 ? (
-              <BosKutu metin="Önümüzdeki günler için henüz maç girilmedi. Geçmiş sonuçlar fikstür sayfasında." />
+              <BosKutu metin={metin.yaklasanBos} />
             ) : (
               // Geniş ekranda iki gün yan yana; tek gün varsa tam genişlik.
               <div className={`grid items-start gap-5 ${gunler.size > 1 ? "lg:grid-cols-2 lg:gap-8" : ""}`}>
@@ -157,14 +175,14 @@ export function YaklasanMaclar({
           <div>
             <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <p className="eyebrow text-brand-lite">Ligden haberler</p>
-                <h2 className="display mt-2 text-[clamp(2rem,5.5vw,3.2rem)]">Duyurular</h2>
+                <p className="eyebrow text-brand-lite">{metin.duyuruEtiket}</p>
+                <h2 className="display mt-2 text-[clamp(2rem,5.5vw,3.2rem)]">{metin.duyuruBaslik}</h2>
               </div>
               <Link
                 href="/kurallar-ve-duyurular#duyurular"
                 className={`${BAGLANTI} border-brand-lite text-brand-lite hover:border-white hover:text-white`}
               >
-                Tüm duyurular <span aria-hidden className="ok">→</span>
+                {metin.duyuruLink} <span aria-hidden className="ok">→</span>
               </Link>
             </Reveal>
 
@@ -172,7 +190,7 @@ export function YaklasanMaclar({
               {duyuruHatasi ? (
                 <BosKutu metin="Duyurular şu an okunamıyor. Birkaç dakika içinde kendiliğinden düzelir." />
               ) : duyurular.length === 0 ? (
-                <BosKutu metin="Henüz duyuru yok. Lig ile ilgili her yenilik önce burada görünecek." />
+                <BosKutu metin={metin.duyuruBos} />
               ) : (
                 <ul className="grid gap-3">
                   {duyurular.map((d) => (
@@ -186,7 +204,7 @@ export function YaklasanMaclar({
           {/* Hata anında soldaki kutu yeterli; ikinci uyarı basılmıyor. */}
           {!duyuruHatasi && tumKurallar.length > 0 && (
             <Reveal delay={120}>
-              <Kurallar kurallar={tumKurallar} />
+              <Kurallar kurallar={tumKurallar} metin={metin} />
             </Reveal>
           )}
         </div>
@@ -285,20 +303,20 @@ function DuyuruKarti({ duyuru: d }: { duyuru: Duyuru }) {
 }
 
 /** Kısa kural listesi: yalnız başlıklar, dokununca açıklama açılıyor. */
-function Kurallar({ kurallar }: { kurallar: Duyuru[] }) {
+function Kurallar({ kurallar, metin }: { kurallar: Duyuru[]; metin: BantMetinleri }) {
   const gosterilen = kurallar.slice(0, KURAL_ADEDI);
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow text-gold">Saha içi</p>
-          <h2 className="display mt-2 text-[clamp(2rem,5.5vw,3.2rem)]">Kurallar</h2>
+          <p className="eyebrow text-gold">{metin.kuralEtiket}</p>
+          <h2 className="display mt-2 text-[clamp(2rem,5.5vw,3.2rem)]">{metin.kuralBaslik}</h2>
         </div>
         <Link
           href="/kurallar-ve-duyurular#kurallar"
           className={`${BAGLANTI} border-gold text-gold hover:border-white hover:text-white`}
         >
-          Tüm kurallar ({kurallar.length}) <span aria-hidden className="ok">→</span>
+          {metin.kuralLink} ({kurallar.length}) <span aria-hidden className="ok">→</span>
         </Link>
       </div>
       <KuralListesi kurallar={gosterilen} />

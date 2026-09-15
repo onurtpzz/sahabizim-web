@@ -138,6 +138,31 @@ token kullan: `bg-ink`, `text-brand`, `border-line`, `text-gold`, `text-lose` vb
 - Takım armaları Supabase Storage'dan `crossOrigin="anonymous"` ile çekiliyor — bu olmadan
   canvas "kirlenir" ve PNG indirilemez.
 
+## Uygulama olarak yükleme (PWA) ve analitik
+
+- **İki ayrı uygulama.** Site: `public/manifest.webmanifest` (kapsam `/`), panel:
+  `public/admin.webmanifest` (kapsam `/admin`). Manifest bağlantısı `app/(site)/layout.tsx` ve
+  `app/admin/layout.tsx` içindeki `metadata`dan geliyor — `app/manifest.ts` dosyası **açma**,
+  her sayfaya siteninkini basar ve panel uygulaması bozulur. Simgeler `public/icons/`.
+- **Panel layout'u ikiye bölündü:** `admin/layout.tsx` sunucu bileşeni (metadata için),
+  oturum/menü mantığı `admin/admin-kabuk.tsx` içinde.
+- **Service worker** `public/sw.js`, yalnız canlı derlemede kaydolur (`components/pwa/pwa-kaydi.tsx`).
+  Sayfalar ağ-önce; internet yoksa son saklanan kopya `sb-onbellek` işaretiyle açılır ve
+  `CevrimdisiSeridi` "skorlar eski olabilir" uyarısı basar. **/admin ve /api asla saklanmaz**
+  (eski kopyada skor girilmesin). Önbellek davranışını değiştirirsen `SURUM`u artır.
+- **Yükleme düğmeleri** `components/pwa/yukleme.tsx` + durum `lib/pwa.ts`. iPhone'da yükleme
+  olayı yok (tarayıcı kısıtı); orada tarif penceresi açılır. Kapatılan davet 2 hafta çıkmaz.
+- **Vercel Analytics** kök layout'ta `<Analytics />` (`@vercel/analytics`). Veri Vercel
+  panelinde Analytics sekmesinde; projede Analytics'in açık olması gerekir.
+
+## Site metinleri
+
+Varsayılanlar `src/lib/icerik-varsayilan.ts` içinde (panel de okuduğu için `veri.ts`ten ayrı).
+Anasayfadaki **her başlık, etiket ve bağlantı yazısı** bir ayar anahtarı; panelde Ayarlar →
+"Anasayfa · 1…8" grupları. Yeni metin eklerken: varsayılana anahtar ekle, bileşende
+`icerik.<anahtar>` kullan, `admin/ayarlar/page.tsx` GRUPLAR'a etiketiyle ekle. Veritabanında
+satır açmaya gerek yok — `ayarKaydet` upsert yapıyor, ilk kayıtta satır oluşur.
+
 ## Ziyaretçi fotoğrafları
 
 Takım sayfasından yüklenen fotoğraflar **gizli** `takim-fotograflari-bekleyen` kovasına gider;
@@ -197,6 +222,8 @@ olgunlukta yapılmıştı.
 Yedek yok — yukarıdaki "CANLI VERİYE DOKUNMA" kuralı burada da geçerli.
 
 SQL dosyaları `supabase/` altında, numara sırasıyla çalıştırılır (01–15 çalıştırıldı).
+`16-kampanya-temizligi.sql` **VERİ SİLER** (ayarlar tablosundan 4 kampanya satırı) — yazıldı,
+kullanıcı onayı olmadan çalıştırılmadı.
 Yeni bir dosya eklersen Supabase → SQL Editor'da çalıştırılması gerektiğini söyle. RLS
 uyarısı çıkarsa **Run and enable RLS** denir; dosyalar RLS'i zaten kendisi açıyor.
 

@@ -79,13 +79,13 @@ export default async function Anasayfa() {
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 href="/puan-durumu"
-                className="rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5 hover:bg-[#15c244]"
+                className="btn-parla rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5 hover:bg-[#15c244]"
               >
                 {icerik.hero_buton1}
               </Link>
               <Link
                 href="/katil"
-                className="rounded-sm border-2 border-white/45 px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider transition hover:border-gold hover:text-gold"
+                className="btn-cizgi rounded-sm border-2 border-white/45 px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider transition hover:border-gold hover:text-gold"
               >
                 {icerik.hero_buton2}
               </Link>
@@ -133,7 +133,7 @@ export default async function Anasayfa() {
             href="/puan-durumu"
             className="border-b-2 border-brand pb-0.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-brand"
           >
-            Tüm tabloyu gör →
+            Tüm tabloyu gör <span aria-hidden className="ok">→</span>
           </Link>
         </Reveal>
         <Reveal>
@@ -165,14 +165,14 @@ export default async function Anasayfa() {
             href="/galeri"
             className="border-b-2 border-brand pb-0.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-brand"
           >
-            Tüm albümler →
+            Tüm albümler <span aria-hidden className="ok">→</span>
           </Link>
         </Reveal>
         <Reveal className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {galeri.slice(0, 4).map((g, i) => (
             <figure
               key={g.id}
-              className={`relative m-0 aspect-4/3 overflow-hidden rounded ${
+              className={`foto-hover relative m-0 aspect-4/3 overflow-hidden rounded ${
                 i === 0 ? "col-span-2 row-span-2" : ""
               }`}
             >
@@ -213,7 +213,7 @@ export default async function Anasayfa() {
             <p className="mt-3 max-w-[50ch] text-muted">{icerik.katil_metin}</p>
             <Link
               href="/katil"
-              className="mt-6 inline-block rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
+              className="btn-parla mt-6 inline-block rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
             >
               Başvuru Formu
             </Link>

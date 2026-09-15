@@ -36,7 +36,7 @@ export function TakimFotograflari({
           <button
             type="button"
             onClick={() => setFormAcik((v) => !v)}
-            className="rounded-sm border-2 border-ink px-5 py-3 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider uppercase transition hover:border-brand hover:text-brand"
+            className="btn-cizgi rounded-sm border-2 border-ink px-5 py-3 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider uppercase transition hover:border-brand hover:text-brand"
           >
             {formAcik ? "Vazgeç" : "+ Fotoğraf ekle"}
           </button>
@@ -62,7 +62,7 @@ export function TakimFotograflari({
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {fotograflar.map((f, i) => (
             <li key={f.id}>
-              <figure className="m-0 overflow-hidden rounded border border-line bg-white">
+              <figure className="foto-hover kart-golge m-0 overflow-hidden rounded border border-line bg-white">
                 <button
                   type="button"
                   onClick={() => setBuyutec(i)}
@@ -298,14 +298,14 @@ function YuklemeFormu({
           <button
             type="submit"
             disabled={bekle}
-            className="rounded-sm bg-brand px-6 py-3 font-[family-name:var(--font-data)] font-bold tracking-wider text-white uppercase transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-parla rounded-sm bg-brand px-6 py-3 font-[family-name:var(--font-data)] font-bold tracking-wider text-white uppercase transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {bekle ? "Yükleniyor…" : "Gönder"}
           </button>
           <button
             type="button"
             onClick={kapat}
-            className="rounded-sm border-2 border-line px-6 py-3 font-[family-name:var(--font-data)] font-bold tracking-wider text-muted uppercase transition hover:border-ink hover:text-ink"
+            className="btn-cizgi rounded-sm border-2 border-line px-6 py-3 font-[family-name:var(--font-data)] font-bold tracking-wider text-muted uppercase transition hover:border-ink hover:text-ink"
           >
             Kapat
           </button>

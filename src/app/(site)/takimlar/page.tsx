@@ -36,12 +36,12 @@ export default async function TakimlarSayfasi() {
             <li key={t.slug}>
               <Link
                 href={`/takim/${t.slug}`}
-                className="flex items-center gap-3 rounded border border-line bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand"
+                className="kart-hover group flex items-center gap-3 rounded border border-line bg-white p-4"
               >
                 <span
                   aria-hidden
                   style={{ background: r.renk }}
-                  className="grid h-11 w-11 flex-none place-items-center rounded-full font-[family-name:var(--font-data)] font-bold text-white"
+                  className="grid h-11 w-11 flex-none place-items-center rounded-full font-[family-name:var(--font-data)] font-bold text-white transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
                 >
                   {r.harf}
                 </span>

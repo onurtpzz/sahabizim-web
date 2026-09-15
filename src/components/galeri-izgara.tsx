@@ -20,7 +20,7 @@ export function GaleriIzgara({ kareler }: { kareler: GaleriKaresi[] }) {
       <ul className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {kareler.map((k, i) => (
           <li key={k.id}>
-            <figure className="relative m-0 overflow-hidden rounded">
+            <figure className="foto-hover relative m-0 overflow-hidden rounded">
               <button
                 type="button"
                 onClick={() => setSira(i)}

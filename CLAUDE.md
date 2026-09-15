@@ -60,6 +60,13 @@ token kullan: `bg-ink`, `text-brand`, `border-line`, `text-gold`, `text-lose` vb
 - **Neon menü efektleri** `globals.css` içinde (`.neon-link`, `.neon-dugme`, `.neon-satir`,
   `.neon-sekme`). Hover kuralları `@media (hover: hover)` içinde kalmalı — dışına çıkarsa
   telefonda dokunulan bağlantı "yanık" kalır. Aktif sayfa `aria-current="page"` ile yanar.
+- **Etkileşim sınıfları** (`globals.css`, "SİTE GENELİ ETKİLEŞİMLER"): yeni bir tıklanabilir
+  öğe eklerken elle hover/animasyon yazma, bunlardan birini kullan —
+  `btn-parla` (dolu düğme) · `btn-cizgi` (çerçeveli düğme) · `kart-hover` (açık zeminde
+  tıklanan kart) · `kart-koyu` (koyu zeminde kart) · `kart-golge` (tıklanmayan medya kartı) ·
+  `satir-neon` (+`satir-neon-koyu`) maç satırı · `foto-hover` · `girdi-neon` (form alanı) ·
+  `alt-link` (altbilgi) · `logo-hover`. Bağlantı sonundaki ok `<span aria-hidden className="ok">→</span>`
+  olarak yazılır, üzerine gelince kayar.
 - next/font değişkenleri `<html>` üzerinde tanımlı — `<body>`'ye taşıma, `:root` içindeki
   `--font-display` zinciri bozulur.
 

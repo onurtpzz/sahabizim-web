@@ -63,7 +63,7 @@ function YoutubeKart({ icerik }: { icerik: SosyalIcerik }) {
   const id = youtubeId(icerik.url);
   if (!id) return null;
   return (
-    <figure className="m-0 flex h-full flex-col overflow-hidden rounded border border-line bg-white">
+    <figure className="kart-golge m-0 flex h-full flex-col overflow-hidden rounded border border-line bg-white">
       <div className="grid flex-1 place-items-center bg-black">
         <div className="relative aspect-video w-full">
           <iframe
@@ -86,7 +86,7 @@ function YoutubeKart({ icerik }: { icerik: SosyalIcerik }) {
           rel="noopener noreferrer"
           className="shrink-0 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider text-brand hover:underline"
         >
-          YouTube&apos;da aç →
+          YouTube&apos;da aç <span aria-hidden className="ok">→</span>
         </a>
       </figcaption>
     </figure>

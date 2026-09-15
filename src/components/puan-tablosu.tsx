@@ -64,7 +64,7 @@ export function PuanTablosu({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Takım ara — örn. Curcuna"
-              className="w-full min-w-[180px] rounded-sm border border-line bg-paper px-3 py-2.5 text-[15px]"
+              className="girdi-neon w-full min-w-[180px] rounded-sm border border-line bg-paper px-3 py-2.5 text-[15px]"
             />
           </label>
           <p className="font-[family-name:var(--font-data)] text-sm tracking-wide text-muted">
@@ -74,7 +74,7 @@ export function PuanTablosu({
       )}
 
       <p className="border-b border-line px-4 py-2 font-[family-name:var(--font-data)] text-xs uppercase tracking-wider text-muted md:hidden">
-        Sıra ve takım adı sabit — tabloyu yana kaydır →
+        Sıra ve takım adı sabit — tabloyu yana kaydır <span aria-hidden className="ok ok-kaydir">→</span>
       </p>
 
       <div className="overflow-x-auto">
@@ -121,7 +121,7 @@ export function PuanTablosu({
               return (
                 <tr key={t.slug} className="group border-b border-line transition-colors hover:bg-[#eaf4eb]">
                   <td
-                    className={`sticky left-0 z-10 w-8 bg-white px-1 py-2.5 text-center font-[family-name:var(--font-display)] text-base transition-colors group-hover:bg-[#eaf4eb] md:static md:w-12 md:px-2 md:text-lg ${
+                    className={`sticky left-0 z-10 w-8 bg-white px-1 py-2.5 text-center font-[family-name:var(--font-display)] text-base transition-[background-color,box-shadow] duration-300 group-hover:bg-[#eaf4eb] group-hover:shadow-[inset_3px_0_0_var(--color-brand)] md:static md:w-12 md:px-2 md:text-lg ${
                       t.sira === 1 ? "text-gold" : t.sira <= 3 ? "text-brand" : "text-muted"
                     }`}
                   >
@@ -140,13 +140,13 @@ export function PuanTablosu({
                           width={30}
                           height={30}
                           loading="lazy"
-                          className="h-5 w-5 flex-none rounded-full object-contain md:h-[30px] md:w-[30px]"
+                          className="h-5 w-5 flex-none rounded-full object-contain transition-transform duration-300 group-hover:scale-110 md:h-[30px] md:w-[30px]"
                         />
                       ) : (
                         <span
                           aria-hidden
                           style={{ background: r.renk }}
-                          className="grid h-5 w-5 flex-none place-items-center rounded-full font-[family-name:var(--font-data)] text-[9px] font-bold text-white md:h-[30px] md:w-[30px] md:text-[12px]"
+                          className="grid h-5 w-5 flex-none place-items-center rounded-full transition-transform duration-300 group-hover:scale-110 font-[family-name:var(--font-data)] text-[9px] font-bold text-white md:h-[30px] md:w-[30px] md:text-[12px]"
                         >
                           {r.harf}
                         </span>
@@ -187,7 +187,7 @@ export function PuanTablosu({
           <button
             type="button"
             onClick={() => setHepsi((v) => !v)}
-            className="rounded-sm bg-ink px-6 py-3 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
+            className="btn-parla rounded-sm bg-ink px-6 py-3 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
           >
             {hepsi ? `İlk ${baslangicAdet} takımı göster` : `Tüm ${satirlar.length} takımı göster`}
           </button>

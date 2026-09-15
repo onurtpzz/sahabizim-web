@@ -54,7 +54,7 @@ function MacSatiri({ mac, slug }: { mac: FiksturMaci; slug: string }) {
   const t = tarihYaz(mac.tarih);
 
   return (
-    <li className="grid grid-cols-[56px_1fr_auto] items-center gap-3 border-t border-line px-4 py-3 first:border-t-0">
+    <li className="satir-neon grid grid-cols-[56px_1fr_auto] items-center gap-3 border-t border-line px-4 py-3 first:border-t-0">
       <span
         title={t.tam}
         className="font-[family-name:var(--font-data)] text-[13px] tracking-wide text-muted uppercase"
@@ -142,7 +142,7 @@ export function TakimMaclari({
           href="/fikstur"
           className="border-b-2 border-brand pb-0.5 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider text-brand uppercase"
         >
-          Tüm fikstür →
+          Tüm fikstür <span aria-hidden className="ok">→</span>
         </Link>
       </div>
 

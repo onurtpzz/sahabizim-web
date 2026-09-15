@@ -23,7 +23,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/15 bg-ink/95 backdrop-blur">
       <div className="mx-auto flex h-[70px] w-full max-w-[1180px] items-center gap-4 px-5">
-        <Link href="/" className="flex flex-none items-center gap-3 text-white">
+        <Link href="/" className="logo-hover flex flex-none items-center gap-3 text-white">
           <Image
             src="/images/logo.png"
             alt="SahaBizim logosu"

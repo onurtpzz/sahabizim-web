@@ -96,7 +96,7 @@ export function TakimPaylas(props: Props) {
           <button
             type="button"
             onClick={paylas}
-            className="rounded-sm border-2 border-ink px-4 py-3 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-brand hover:text-brand"
+            className="btn-cizgi rounded-sm border-2 border-ink px-4 py-3 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-brand hover:text-brand"
           >
             Diğer uygulamalar
           </button>
@@ -104,7 +104,7 @@ export function TakimPaylas(props: Props) {
           <button
             type="button"
             onClick={kopyala}
-            className="rounded-sm border-2 border-line px-4 py-3 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider text-muted transition hover:border-brand hover:text-brand"
+            className="btn-cizgi rounded-sm border-2 border-line px-4 py-3 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider text-muted transition hover:border-brand hover:text-brand"
           >
             {kopyalandi ? "Kopyalandı ✓" : "Metni kopyala"}
           </button>

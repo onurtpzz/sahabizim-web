@@ -133,13 +133,13 @@ export default async function BizKimizSayfasi() {
         <div className="flex flex-wrap gap-3">
           <Link
             href="/katil"
-            className="rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
+            className="btn-parla rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
           >
             Takımını Kaydet
           </Link>
           <Link
             href="/puan-durumu"
-            className="rounded-sm border-2 border-ink px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider transition hover:border-brand hover:text-brand"
+            className="btn-cizgi rounded-sm border-2 border-ink px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider transition hover:border-brand hover:text-brand"
           >
             Puan Durumu
           </Link>

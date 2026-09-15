@@ -58,13 +58,13 @@ export default async function KurallarVeDuyurularSayfasi() {
           <nav className="mt-7 flex flex-wrap gap-2.5">
             <a
               href="#duyurular"
-              className="rounded-sm border-2 border-white/35 px-5 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-brand-lite hover:text-brand-lite"
+              className="btn-cizgi rounded-sm border-2 border-white/35 px-5 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-brand-lite hover:text-brand-lite"
             >
               Duyurular{hataVar ? "" : ` (${duyurular.length})`}
             </a>
             <a
               href="#kurallar"
-              className="rounded-sm border-2 border-white/35 px-5 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-gold hover:text-gold"
+              className="btn-cizgi rounded-sm border-2 border-white/35 px-5 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-gold hover:text-gold"
             >
               Lig Kuralları{hataVar ? "" : ` (${kurallar.length})`}
             </a>
@@ -196,13 +196,13 @@ export default async function KurallarVeDuyurularSayfasi() {
           <div className="mt-10 flex flex-wrap gap-3">
             <Link
               href="/iletisim"
-              className="rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold tracking-wider text-white uppercase transition hover:-translate-y-0.5"
+              className="btn-parla rounded-sm bg-brand px-6 py-3.5 font-[family-name:var(--font-data)] font-bold tracking-wider text-white uppercase transition hover:-translate-y-0.5"
             >
               Aklına takılan var mı?
             </Link>
             <Link
               href="/fikstur"
-              className="rounded-sm border-2 border-ink px-6 py-3.5 font-[family-name:var(--font-data)] font-bold tracking-wider uppercase transition hover:border-brand hover:text-brand"
+              className="btn-cizgi rounded-sm border-2 border-ink px-6 py-3.5 font-[family-name:var(--font-data)] font-bold tracking-wider uppercase transition hover:border-brand hover:text-brand"
             >
               Fikstüre bak
             </Link>

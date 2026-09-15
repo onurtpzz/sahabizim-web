@@ -61,9 +61,9 @@ export default async function FiksturSayfasi({
       <h1 className="display mt-2 text-[clamp(2.2rem,6vw,3.6rem)]">Fikstür</h1>
       <Link
         href="/puan-durumu"
-        className="mt-5 inline-flex items-center gap-2 rounded-sm bg-brand px-6 py-3 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5 hover:bg-brand-deep"
+        className="btn-parla mt-5 inline-flex items-center gap-2 rounded-sm bg-brand px-6 py-3 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5 hover:bg-brand-deep"
       >
-        Güncel puan durumunu görmek için tıklayın →
+        Güncel puan durumunu görmek için tıklayın <span aria-hidden className="ok">→</span>
       </Link>
 
       {sonuc.durum === "hata" ? (
@@ -83,7 +83,7 @@ export default async function FiksturSayfasi({
               href="/puan-durumu"
               className="font-[family-name:var(--font-data)] font-bold text-brand hover:underline"
             >
-              Güncel puan durumuna git →
+              Güncel puan durumuna git <span aria-hidden className="ok">→</span>
             </Link>
           </p>
         </div>
@@ -120,7 +120,7 @@ export default async function FiksturSayfasi({
 function Sayfalama({ su, toplam, adet }: { su: number; toplam: number; adet: number }) {
   const adres = (n: number) => (n === 1 ? "/fikstur" : `/fikstur?sayfa=${n}`);
   const stil =
-    "rounded-sm border border-line bg-white px-4 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-brand hover:text-brand";
+    "btn-cizgi rounded-sm border border-line bg-white px-4 py-2.5 font-[family-name:var(--font-data)] text-sm font-bold uppercase tracking-wider transition hover:border-brand hover:text-brand";
 
   return (
     <nav aria-label="Sonuç sayfaları" className="flex flex-wrap items-center gap-3">
@@ -138,7 +138,7 @@ function Sayfalama({ su, toplam, adet }: { su: number; toplam: number; adet: num
 
       {su < toplam ? (
         <Link href={adres(su + 1)} rel="next" className={stil}>
-          Daha eski →
+          Daha eski <span aria-hidden className="ok">→</span>
         </Link>
       ) : (
         <span className={`${stil} cursor-default opacity-40`}>Daha eski →</span>
@@ -186,7 +186,7 @@ function MacSatiri({ mac }: { mac: FiksturMaci }) {
   const saat = macSaati(mac.tarih);
 
   return (
-    <li className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-line px-3 py-3 last:border-b-0 md:gap-4 md:px-5">
+    <li className="satir-neon grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-line px-3 py-3 last:border-b-0 md:gap-4 md:px-5">
       <Taraf takim={mac.ev} kazandi={evKazandi} yon="sag" />
 
       <div className="flex min-w-[76px] flex-col items-center">
@@ -233,7 +233,7 @@ function Taraf({
   return (
     <Link
       href={`/takim/${takim.slug}`}
-      className={`flex min-w-0 items-center gap-2.5 font-[family-name:var(--font-data)] text-[15px] font-semibold hover:text-brand md:text-[17px] ${
+      className={`group flex min-w-0 items-center gap-2.5 font-[family-name:var(--font-data)] text-[15px] font-semibold hover:text-brand md:text-[17px] ${
         yon === "sag" ? "flex-row-reverse text-right" : ""
       } ${kazandi ? "text-ink" : "text-muted"}`}
     >
@@ -242,13 +242,13 @@ function Taraf({
         <img
           src={takim.logoUrl}
           alt=""
-          className="h-7 w-7 flex-none rounded-full object-contain md:h-8 md:w-8"
+          className="h-7 w-7 flex-none rounded-full object-contain transition-transform duration-300 group-hover:scale-115 md:h-8 md:w-8"
         />
       ) : (
         <span
           aria-hidden
           style={{ background: r.renk }}
-          className="grid h-7 w-7 flex-none place-items-center rounded-full text-[11px] font-bold text-white md:h-8 md:w-8"
+          className="grid h-7 w-7 flex-none place-items-center rounded-full text-[11px] font-bold text-white transition-transform duration-300 group-hover:scale-115 md:h-8 md:w-8"
         >
           {r.harf}
         </span>

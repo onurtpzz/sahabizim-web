@@ -164,7 +164,7 @@ export function HaftaninOzeti({ ozet }: { ozet: HaftaOzeti }) {
 
         <p className="mt-4 text-sm text-muted-dark">
           <Link href="/fikstur" className="font-semibold text-brand-lite hover:underline">
-            Tüm maçlar →
+            Tüm maçlar <span aria-hidden className="ok">→</span>
           </Link>
         </p>
       </div>

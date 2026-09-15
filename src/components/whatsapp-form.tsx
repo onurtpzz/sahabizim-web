@@ -54,7 +54,7 @@ export function WhatsappForm({ tip }: { tip: Tip }) {
           value={mesaj}
           onChange={(e) => setMesaj(e.target.value)}
           rows={4}
-          className="w-full rounded-sm border border-line bg-paper px-3 py-2.5"
+          className="girdi-neon w-full rounded-sm border border-line bg-paper px-3 py-2.5"
           placeholder={
             tip === "katilim"
               ? "Kaç kişilik kadromuz var, hangi günler müsaitiz…"
@@ -65,7 +65,7 @@ export function WhatsappForm({ tip }: { tip: Tip }) {
 
       <button
         type="submit"
-        className="w-full rounded-sm bg-[#25d366] px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-ink transition hover:bg-[#1fbe5b]"
+        className="btn-parla w-full rounded-sm bg-[#25d366] px-6 py-3.5 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-ink transition hover:bg-[#1fbe5b]"
       >
         WhatsApp&apos;tan Gönder
       </button>
@@ -103,7 +103,7 @@ function Alan({
         required={gerekli}
         value={deger}
         onChange={(e) => degistir(e.target.value)}
-        className="w-full rounded-sm border border-line bg-paper px-3 py-2.5"
+        className="girdi-neon w-full rounded-sm border border-line bg-paper px-3 py-2.5"
       />
     </label>
   );

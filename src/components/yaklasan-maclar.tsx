@@ -97,7 +97,7 @@ export function YaklasanMaclar({
               href="/fikstur"
               className={`${BAGLANTI} border-gold text-gold hover:border-white hover:text-white`}
             >
-              Tüm fikstür →
+              Tüm fikstür <span aria-hidden className="ok">→</span>
             </Link>
           </Reveal>
 
@@ -156,7 +156,7 @@ export function YaklasanMaclar({
                 href="/kurallar-ve-duyurular#duyurular"
                 className={`${BAGLANTI} border-brand-lite text-brand-lite hover:border-white hover:text-white`}
               >
-                Tüm duyurular →
+                Tüm duyurular <span aria-hidden className="ok">→</span>
               </Link>
             </Reveal>
 
@@ -196,7 +196,7 @@ function BosKutu({ metin }: { metin: string }) {
 function MacSatiri({ mac }: { mac: FiksturMaci }) {
   const saat = macSaati(mac.tarih);
   return (
-    <li className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-white/10 px-3 py-3 last:border-b-0 md:gap-3 md:px-4">
+    <li className="satir-neon satir-neon-koyu grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-white/10 px-3 py-3 last:border-b-0 md:gap-3 md:px-4">
       <Taraf takim={mac.ev} yon="sag" />
       <span
         className={`min-w-[52px] rounded-sm px-1.5 py-1 md:min-w-[58px] md:px-2 text-center font-[family-name:var(--font-data)] ${
@@ -217,7 +217,7 @@ function Taraf({ takim, yon }: { takim: FiksturMaci["ev"]; yon: "sag" | "sol" })
   return (
     <Link
       href={`/takim/${takim.slug}`}
-      className={`flex min-w-0 items-center gap-2 font-[family-name:var(--font-data)] text-[15px] font-semibold leading-tight text-white hover:text-brand-lite md:text-base ${
+      className={`group flex min-w-0 items-center gap-2 font-[family-name:var(--font-data)] text-[15px] font-semibold leading-tight text-white hover:text-brand-lite md:text-base ${
         yon === "sag" ? "flex-row-reverse text-right" : ""
       }`}
     >
@@ -226,13 +226,13 @@ function Taraf({ takim, yon }: { takim: FiksturMaci["ev"]; yon: "sag" | "sol" })
         <img
           src={takim.logoUrl}
           alt=""
-          className="hidden h-7 w-7 flex-none rounded-full bg-white/90 object-contain sm:block"
+          className="hidden h-7 w-7 flex-none rounded-full bg-white/90 object-contain transition-transform duration-300 group-hover:scale-115 sm:block"
         />
       ) : (
         <span
           aria-hidden
           style={{ background: r.renk }}
-          className="hidden h-7 w-7 flex-none place-items-center rounded-full text-[11px] font-bold text-white sm:grid"
+          className="hidden h-7 w-7 flex-none place-items-center rounded-full text-[11px] font-bold text-white transition-transform duration-300 group-hover:scale-115 sm:grid"
         >
           {r.harf}
         </span>
@@ -251,7 +251,7 @@ function DuyuruKarti({ duyuru: d }: { duyuru: Duyuru }) {
     <li>
       <Link
         href="/kurallar-ve-duyurular#duyurular"
-        className={`group block border-l-[3px] bg-white/[0.04] p-5 transition-colors hover:bg-white/[0.08] ${
+        className={`kart-koyu group block border-l-[3px] bg-white/[0.04] p-5 ${
           d.sabit ? "border-l-gold" : "border-l-brand"
         }`}
       >
@@ -290,7 +290,7 @@ function Kurallar({ kurallar }: { kurallar: Duyuru[] }) {
           href="/kurallar-ve-duyurular#kurallar"
           className={`${BAGLANTI} border-gold text-gold hover:border-white hover:text-white`}
         >
-          Tüm kurallar ({kurallar.length}) →
+          Tüm kurallar ({kurallar.length}) <span aria-hidden className="ok">→</span>
         </Link>
       </div>
       <KuralListesi kurallar={gosterilen} />

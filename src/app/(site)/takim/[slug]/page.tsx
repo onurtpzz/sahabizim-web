@@ -340,19 +340,19 @@ export default async function TakimSayfasi({
         <nav className="mt-8 flex flex-wrap gap-3 border-t border-line pt-6">
           <Link
             href="/takimlar"
-            className="rounded-sm border-2 border-ink px-5 py-3 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider uppercase transition hover:border-brand hover:text-brand"
+            className="btn-cizgi rounded-sm border-2 border-ink px-5 py-3 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider uppercase transition hover:border-brand hover:text-brand"
           >
             Tüm takımlar
           </Link>
           <Link
             href="/puan-durumu"
-            className="rounded-sm border-2 border-line px-5 py-3 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider text-muted uppercase transition hover:border-brand hover:text-brand"
+            className="btn-cizgi rounded-sm border-2 border-line px-5 py-3 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider text-muted uppercase transition hover:border-brand hover:text-brand"
           >
             Puan durumu
           </Link>
           <Link
             href="/katil"
-            className="rounded-sm bg-brand px-5 py-3 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider text-white uppercase transition hover:-translate-y-0.5"
+            className="btn-parla rounded-sm bg-brand px-5 py-3 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider text-white uppercase transition hover:-translate-y-0.5"
           >
             Takımını kaydet
           </Link>

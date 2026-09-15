@@ -10,7 +10,7 @@ export async function SiteFooter() {
       <div className="mx-auto w-full max-w-[1180px] px-5">
         <div className="grid gap-8 md:grid-cols-3">
           <div>
-            <Link href="/" className="mb-3 flex items-center gap-3 text-white">
+            <Link href="/" className="logo-hover mb-3 flex items-center gap-3 text-white">
               <Image
                 src="/images/logo.png"
                 alt=""
@@ -33,12 +33,12 @@ export async function SiteFooter() {
               Lig
             </h2>
             <ul className="grid gap-2 font-[family-name:var(--font-data)] text-base">
-              <li><Link href="/puan-durumu" className="hover:text-brand-lite">Puan Durumu</Link></li>
-              <li><Link href="/fikstur" className="hover:text-brand-lite">Fikstür</Link></li>
-              <li><Link href="/takimlar" className="hover:text-brand-lite">Takımlar</Link></li>
-              <li><Link href="/kurallar-ve-duyurular" className="hover:text-brand-lite">Kurallar ve Duyurular</Link></li>
-              <li><Link href="/arsiv" className="hover:text-brand-lite">Arşiv</Link></li>
-              <li><Link href="/biz-kimiz" className="hover:text-brand-lite">Biz Kimiz</Link></li>
+              <li><Link href="/puan-durumu" className="alt-link">Puan Durumu</Link></li>
+              <li><Link href="/fikstur" className="alt-link">Fikstür</Link></li>
+              <li><Link href="/takimlar" className="alt-link">Takımlar</Link></li>
+              <li><Link href="/kurallar-ve-duyurular" className="alt-link">Kurallar ve Duyurular</Link></li>
+              <li><Link href="/arsiv" className="alt-link">Arşiv</Link></li>
+              <li><Link href="/biz-kimiz" className="alt-link">Biz Kimiz</Link></li>
             </ul>
           </div>
 
@@ -47,12 +47,12 @@ export async function SiteFooter() {
               İletişim
             </h2>
             <ul className="grid gap-2 font-[family-name:var(--font-data)] text-base">
-              <li><Link href="/katil" className="hover:text-brand-lite">Aramıza Katıl</Link></li>
-              <li><Link href="/iletisim" className="hover:text-brand-lite">{icerik.telefon}</Link></li>
+              <li><Link href="/katil" className="alt-link">Aramıza Katıl</Link></li>
+              <li><Link href="/iletisim" className="alt-link">{icerik.telefon}</Link></li>
               <li>
-                <a href={icerik.instagram} className="hover:text-brand-lite">Instagram</a>
+                <a href={icerik.instagram} className="alt-link">Instagram</a>
                 {" · "}
-                <a href={icerik.youtube} className="hover:text-brand-lite">YouTube</a>
+                <a href={icerik.youtube} className="alt-link">YouTube</a>
               </li>
             </ul>
           </div>

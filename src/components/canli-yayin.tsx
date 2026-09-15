@@ -39,7 +39,7 @@ export function CanliYayinSeridi({
       </span>
       {link.trim() && (
         <span className="font-[family-name:var(--font-data)] text-[13px] font-bold uppercase tracking-wider text-brand-lite underline-offset-4 group-hover:underline">
-          {buton} →
+          {buton} <span aria-hidden className="ok">→</span>
         </span>
       )}
     </span>
@@ -98,7 +98,7 @@ export function CanliYayinKarti({
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-sm bg-lose px-5 py-3 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
+            className="btn-parla rounded-sm bg-lose px-5 py-3 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider text-white transition hover:-translate-y-0.5"
           >
             {buton}
           </a>
@@ -106,7 +106,7 @@ export function CanliYayinKarti({
         {!link.trim() && (
           <Link
             href="/iletisim"
-            className="rounded-sm border-2 border-ink px-5 py-3 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider transition hover:border-brand hover:text-brand"
+            className="btn-cizgi rounded-sm border-2 border-ink px-5 py-3 font-[family-name:var(--font-data)] font-bold uppercase tracking-wider transition hover:border-brand hover:text-brand"
           >
             Yayın programı
           </Link>

@@ -39,7 +39,7 @@ export default async function ArsivSayfasi() {
               href="/puan-durumu"
               className="font-[family-name:var(--font-data)] font-bold text-brand hover:underline"
             >
-              Güncel puan durumuna bak →
+              Güncel puan durumuna bak <span aria-hidden className="ok">→</span>
             </Link>
           </p>
         </div>
@@ -50,7 +50,7 @@ export default async function ArsivSayfasi() {
               <Reveal>
                 <Link
                   href={`/arsiv/${s.slug}`}
-                  className="group block rounded border border-line bg-white p-6 transition hover:-translate-y-0.5 hover:border-brand hover:shadow-[0_12px_32px_rgba(4,21,11,0.08)]"
+                  className="kart-hover group block rounded border border-line bg-white p-6"
                 >
                   <div className="flex items-baseline justify-between gap-3">
                     <h2 className="display text-[clamp(1.6rem,4vw,2.2rem)]">{s.ad}</h2>
@@ -77,7 +77,7 @@ export default async function ArsivSayfasi() {
                   </p>
 
                   <span className="mt-4 inline-block border-b-2 border-brand pb-0.5 font-[family-name:var(--font-data)] text-sm font-bold tracking-wider text-brand uppercase">
-                    Final tablosunu aç →
+                    Final tablosunu aç <span aria-hidden className="ok">→</span>
                   </span>
                 </Link>
               </Reveal>

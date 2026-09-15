@@ -25,6 +25,7 @@ import {
   macSil,
   maclariGetir,
   saatBelirsizMi,
+  skorBekleniyorMu,
   macKaydet,
   takimlariGetir,
   type Mac,
@@ -92,7 +93,7 @@ export default function AdminMaclar() {
   /**
    * "Skor bekleyen" ikiye ayrılıyor.
    *
-   * Menüdeki rozet ve özet ekranı yalnız TARİHİ GEÇMİŞ skorsuz maçları sayıyor
+   * Menüdeki rozet ve özet ekranı yalnız BİTMİŞ OLMASI GEREKEN skorsuz maçları sayıyor
    * (`bekleyenIsler`). Bu liste hepsini bir arada gösterdiği için menüde 3,
    * sayfada 17 yazıyordu. Artık iki panel: gecikenler ayrı, sıradakiler ayrı.
    *
@@ -106,9 +107,11 @@ export default function AdminMaclar() {
   const eskidenYeniye = (a: Mac, b: Mac) => zaman(a) - zaman(b);
 
   const tumBekleyen = maclar.filter((m) => m.durum === "oynanacak" && eslesir(m));
-  // Tarihi olmayan maç "geciken" sayılmıyor — rozet sorgusu da (`.lt`) saymıyor.
-  const geciken = tumBekleyen.filter((m) => zaman(m) < simdi).sort(eskidenYeniye);
-  const sirada = tumBekleyen.filter((m) => zaman(m) >= simdi).sort(eskidenYeniye);
+  // "Geciken" tanımı rozetle ortak: `skorBekleniyorMu` — saati belli maç
+  // başlangıçtan 1 saat sonra (maç süresi), saati belirsiz maç gün bitince.
+  // Tarihi olmayan maç geciken sayılmaz.
+  const geciken = tumBekleyen.filter((m) => skorBekleniyorMu(m.oynanma, simdi)).sort(eskidenYeniye);
+  const sirada = tumBekleyen.filter((m) => !skorBekleniyorMu(m.oynanma, simdi)).sort(eskidenYeniye);
   const tumOynanan = maclar.filter((m) => m.durum !== "oynanacak" && eslesir(m));
   const oynanan = tumOynanan.slice(0, gosterilen);
   const suzuluyor = anahtar !== "" || sadeceSkorsuz;
@@ -154,7 +157,7 @@ export default function AdminMaclar() {
       {geciken.length > 0 && (
         <Panel
           baslik="Skoru girilmemiş maçlar"
-          sag={`${geciken.length} maç · tarihi geçti`}
+          sag={`${geciken.length} maç · bitti, skor bekleniyor`}
         >
           <ul className="divide-y divide-white/8">
             {geciken.map((m) => (
@@ -165,7 +168,7 @@ export default function AdminMaclar() {
       )}
 
       {sirada.length > 0 && (
-        <Panel baslik="Sıradaki maçlar" sag={`${sirada.length} maç · henüz oynanmadı`}>
+        <Panel baslik="Sıradaki maçlar" sag={`${sirada.length} maç · henüz bitmedi`}>
           <ul className="divide-y divide-white/8">
             {sirada.map((m) => (
               <MacSatiri key={m.id} mac={m} bilgiler={bilgiler} yenile={yenile} setMesaj={setMesaj} />

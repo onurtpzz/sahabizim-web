@@ -154,6 +154,9 @@ olgunlukta yapılmıştı.
 - `Rakam` — menüdeki bekleyen iş rozeti; sayılar `bekleyenIsler()` üzerinden gelir.
   **Rozetin saydığı şey ile sayfanın gösterdiği liste aynı tanımda olmalı** — biri "tarihi
   geçmiş skorsuz", öteki "tüm oynanacak" sayınca menüde 3, sayfada 17 yazıyordu.
+  Skor gecikmesinin tek tanımı `skorBekleniyorMu()` (`@/lib/zaman`): maçlar **1 saat**
+  (`MAC_SURESI_DK`), 22:00 maçı 23:00'te gecikmiş sayılır; saati belirsiz maç gün bitince.
+  Rozet de sayfa da bunu kullanır — ayrı bir `oynanma < şimdi` karşılaştırması yazma.
 - `src/lib/kirli.ts` — kaydedilmemiş değişiklik defteri. Kutu doldurulan her ekran
   `useKirli(benzersizId, degisti)` çağırmalı; layout menüden çıkışta soruyor. *`beforeunload`
   mobilde çalışmaz (iOS Safari desteklemiyor); mobilde işi yapışkan şerit ve menü onayı

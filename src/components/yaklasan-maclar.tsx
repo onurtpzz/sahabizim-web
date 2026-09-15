@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { KuralListesi } from "@/components/kural-listesi";
 import { Reveal } from "@/components/reveal";
 import { rozet } from "@/lib/puan";
 import type { Duyuru, FiksturMaci } from "@/lib/veri";
@@ -275,10 +276,7 @@ function DuyuruKarti({ duyuru: d }: { duyuru: Duyuru }) {
   );
 }
 
-/**
- * Kısa kural listesi: yalnız başlıklar, dokununca açıklama açılıyor.
- * `<details>` JavaScript'siz çalışıyor ve klavyeyle erişilebilir.
- */
+/** Kısa kural listesi: yalnız başlıklar, dokununca açıklama açılıyor. */
 function Kurallar({ kurallar }: { kurallar: Duyuru[] }) {
   const gosterilen = kurallar.slice(0, KURAL_ADEDI);
   return (
@@ -295,38 +293,7 @@ function Kurallar({ kurallar }: { kurallar: Duyuru[] }) {
           Tüm kurallar ({kurallar.length}) →
         </Link>
       </div>
-      <ol className="divide-y divide-white/10 rounded-sm border border-white/12 bg-white/[0.04]">
-        {gosterilen.map((k, i) => (
-          <li key={k.id}>
-            <details className="group">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 px-4 py-2.5 transition-colors hover:bg-white/[0.06] [&::-webkit-details-marker]:hidden">
-                <span
-                  aria-hidden
-                  className="display w-6 flex-none text-lg text-white/50 group-open:text-gold"
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="min-w-0 flex-1 font-[family-name:var(--font-data)] text-[15px] font-semibold tracking-wide text-white uppercase">
-                  {k.baslik}
-                </span>
-                {k.metin.trim() && (
-                  <span
-                    aria-hidden
-                    className="flex-none text-muted-dark transition-transform group-open:rotate-45"
-                  >
-                    +
-                  </span>
-                )}
-              </summary>
-              {k.metin.trim() && (
-                <p className="px-4 pb-3 pl-[52px] text-[15px] leading-relaxed text-[#cfe0d5]">
-                  {k.metin}
-                </p>
-              )}
-            </details>
-          </li>
-        ))}
-      </ol>
+      <KuralListesi kurallar={gosterilen} />
     </div>
   );
 }

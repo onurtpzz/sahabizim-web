@@ -110,3 +110,28 @@ export function tarihRozeti(gun: string) {
     haftaGunu: bicim({ weekday: "long" }),
   };
 }
+
+// ---------------------------------------------------------------------
+// Skor bekleme — panel rozeti ve maç listesi aynı tanımı kullanır.
+// ---------------------------------------------------------------------
+
+/** Bir maçın süresi. Skor, maç bittikten sonra beklenir. */
+export const MAC_SURESI_DK = 60;
+
+/**
+ * Bu maçın skoru artık girilmiş olmalı mı?
+ *
+ *   Saati belli maç  → başlangıç + `MAC_SURESI_DK` geçtiyse. 22:00 maçı 23:00'te.
+ *   Saati belirsiz   → o lig günü bittiyse. Yer tutucu 12:00 gerçek saat
+ *                      olmadığı için "13:00'te gecikti" demek yanlış alarm olurdu.
+ *   Tarihsiz         → hiçbir zaman (gecikmiş sayılmaz).
+ *
+ * Menüdeki rozet (`bekleyenIsler`) ile Maç & Skor sayfasındaki "gecikenler"
+ * listesi bu fonksiyonu paylaşıyor; ikisi ayrı tanım kullanınca menüde başka,
+ * sayfada başka sayı çıkıyordu.
+ */
+export function skorBekleniyorMu(iso: string | null, simdi: number = Date.now()): boolean {
+  if (!iso) return false;
+  if (saatBelirsizMi(iso)) return ligGunu(iso) < ligGunu(new Date(simdi).toISOString());
+  return Date.parse(iso) + MAC_SURESI_DK * 60_000 <= simdi;
+}

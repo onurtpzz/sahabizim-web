@@ -61,12 +61,15 @@ function db() {
  * kullanıyor, o yüzden Supabase'e bağlı bu dosyada duramazlar. Panelin mevcut
  * çağrıları bozulmasın diye buradan tekrar dışa veriliyorlar.
  */
+import { MAC_SURESI_DK, skorBekleniyorMu } from "@/lib/zaman";
+
 export {
   SAAT_YER_TUTUCU,
   bugun,
   isoSaati,
   isoTarihi,
   saatBelirsizMi,
+  skorBekleniyorMu,
   tarihiIsoYap,
 } from "@/lib/zaman";
 
@@ -571,9 +574,44 @@ export async function sezonSayilari(sezonId: string) {
   return { oynanan, sirada };
 }
 
+/**
+ * Skoru girilmesi gereken maç sayısı — tanım `skorBekleniyorMu` (zaman.ts):
+ * saati belli maç bitişinden (başlangıç + 1 saat), saati belirsiz maç gün
+ * bitiminden sonra sayılır.
+ *
+ * Saat belirsizliği veritabanında sorgulanamadığı için yalnız sayım yetmiyor:
+ * adaylar (başlangıcı en az bir maç süresi önce olan skorsuz maçlar) çekilip
+ * süzülüyor. Aday listesi yalnız "oynanmış olması gereken ama skoru girilmemiş"
+ * maçlardan oluşur, normalde bir elin parmaklarını geçmez; yine de 1000 satır
+ * sınırına takılmasın diye sayfa sayfa okunuyor.
+ */
+async function skorsuzMacSayisi(sezonId: string): Promise<number> {
+  const simdi = Date.now();
+  const sinir = new Date(simdi - MAC_SURESI_DK * 60_000).toISOString();
+  const SAYFA = 1000;
+  let adet = 0;
+  try {
+    for (let bas = 0; ; bas += SAYFA) {
+      const { data, error } = await db()
+        .from("maclar")
+        .select("id, oynanma")
+        .eq("sezon_id", sezonId)
+        .eq("durum", "oynanacak")
+        .lte("oynanma", sinir)
+        .order("id")
+        .range(bas, bas + SAYFA - 1);
+      if (error || !data?.length) break;
+      adet += data.filter((m) => skorBekleniyorMu(m.oynanma as string | null, simdi)).length;
+      if (data.length < SAYFA) break;
+    }
+  } catch {
+    return adet;
+  }
+  return adet;
+}
+
 export async function bekleyenIsler(): Promise<BekleyenIsler> {
   const sezon = await aktifSezon().catch(() => null);
-  const simdi = new Date().toISOString();
 
   const sayim = async (calis: () => PromiseLike<{ count: number | null }>) => {
     try {
@@ -584,16 +622,7 @@ export async function bekleyenIsler(): Promise<BekleyenIsler> {
   };
 
   const [skorsuzMac, fotograf, talep] = await Promise.all([
-    sezon
-      ? sayim(() =>
-          db()
-            .from("maclar")
-            .select("id", { count: "exact", head: true })
-            .eq("sezon_id", sezon.id)
-            .eq("durum", "oynanacak")
-            .lt("oynanma", simdi),
-        )
-      : Promise.resolve(0),
+    sezon ? skorsuzMacSayisi(sezon.id) : Promise.resolve(0),
     sayim(() =>
       db()
         .from("takim_fotograflari")

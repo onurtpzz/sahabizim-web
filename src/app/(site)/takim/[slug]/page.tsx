@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TakimArmasi } from "@/components/takim-armasi";
 import { TakimFotograflari } from "@/components/takim-fotograflari";
 import { TakimMaclari } from "@/components/takim-maclari";
 import { TakimPaylas } from "@/components/takim-paylas";
@@ -161,15 +161,7 @@ export default async function TakimSayfasi({
 
           <div className="mt-5 flex flex-wrap items-center gap-5">
             {takim.logoUrl ? (
-              <span className="relative grid h-24 w-24 flex-none place-items-center overflow-hidden rounded-full bg-white/10">
-                <Image
-                  src={takim.logoUrl}
-                  alt={`${takim.ad} arması`}
-                  fill
-                  sizes="96px"
-                  className="object-contain p-1.5"
-                />
-              </span>
+              <TakimArmasi url={takim.logoUrl} ad={takim.ad} />
             ) : (
               <span
                 aria-hidden

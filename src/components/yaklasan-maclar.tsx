@@ -65,13 +65,25 @@ export function YaklasanMaclar({
 
   return (
     <section className="relative overflow-hidden bg-ink text-white">
-      <div className="absolute inset-0">
-        <Image src={arkaPlan} alt="" fill sizes="100vw" className="object-cover opacity-20" />
+      {/*
+        Arka plan fotoğrafı bölümün boyuna bağlı DEĞİL: sabit yükseklikte, üstte
+        duruyor ve altı zemine eriyor. `inset-0` + `object-cover` olsaydı bir kural
+        açılıp bölüm uzadığında fotoğraf yeniden ölçeklenip "büyüyordu".
+      */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[640px]">
+        <Image
+          src={arkaPlan}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover object-top opacity-20"
+        />
         <div className="absolute inset-0 bg-linear-to-r from-ink via-ink/85 to-ink/60" />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-b from-transparent to-ink" />
       </div>
 
-      <div className="relative mx-auto grid w-full max-w-[1180px] gap-12 px-5 py-14 md:grid-cols-[1.15fr_0.85fr] md:gap-10 md:py-20">
-        {/* YAKLAŞAN MAÇLAR */}
+      <div className="relative mx-auto grid w-full max-w-[1180px] gap-14 px-5 py-14 md:gap-16 md:py-20">
+        {/* 1. SATIR — YAKLAŞAN MAÇLAR (tam genişlik) */}
         <div>
           <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -94,7 +106,8 @@ export function YaklasanMaclar({
             ) : maclar.length === 0 ? (
               <BosKutu metin="Önümüzdeki günler için henüz maç girilmedi. Geçmiş sonuçlar fikstür sayfasında." />
             ) : (
-              <div className="grid gap-5">
+              // Geniş ekranda iki gün yan yana; tek gün varsa tam genişlik.
+              <div className={`grid items-start gap-5 ${gunler.size > 1 ? "lg:grid-cols-2 lg:gap-8" : ""}`}>
                 {[...gunler.entries()].map(([gun, liste]) => {
                   const t = tarihRozeti(gun);
                   return (
@@ -130,38 +143,40 @@ export function YaklasanMaclar({
           </Reveal>
         </div>
 
-        {/* DUYURULAR */}
-        <div>
-          <Reveal delay={100} className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="eyebrow text-brand-lite">Ligden haberler</p>
-              <h2 className="display mt-2 text-[clamp(2rem,5.5vw,3.2rem)]">Duyurular</h2>
-            </div>
-            <Link
-              href="/kurallar-ve-duyurular#duyurular"
-              className={`${BAGLANTI} border-brand-lite text-brand-lite hover:border-white hover:text-white`}
-            >
-              Tüm duyurular →
-            </Link>
-          </Reveal>
+        {/* 2. SATIR — DUYURULAR | KURALLAR (mobilde alt alta) */}
+        <div className="grid items-start gap-14 md:grid-cols-2 md:gap-10">
+          <div>
+            <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="eyebrow text-brand-lite">Ligden haberler</p>
+                <h2 className="display mt-2 text-[clamp(2rem,5.5vw,3.2rem)]">Duyurular</h2>
+              </div>
+              <Link
+                href="/kurallar-ve-duyurular#duyurular"
+                className={`${BAGLANTI} border-brand-lite text-brand-lite hover:border-white hover:text-white`}
+              >
+                Tüm duyurular →
+              </Link>
+            </Reveal>
 
-          <Reveal delay={120}>
-            {duyuruHatasi ? (
-              <BosKutu metin="Duyurular şu an okunamıyor. Birkaç dakika içinde kendiliğinden düzelir." />
-            ) : duyurular.length === 0 ? (
-              <BosKutu metin="Henüz duyuru yok. Lig ile ilgili her yenilik önce burada görünecek." />
-            ) : (
-              <ul className="grid gap-3">
-                {duyurular.map((d) => (
-                  <DuyuruKarti key={d.id} duyuru={d} />
-                ))}
-              </ul>
-            )}
-          </Reveal>
+            <Reveal delay={80}>
+              {duyuruHatasi ? (
+                <BosKutu metin="Duyurular şu an okunamıyor. Birkaç dakika içinde kendiliğinden düzelir." />
+              ) : duyurular.length === 0 ? (
+                <BosKutu metin="Henüz duyuru yok. Lig ile ilgili her yenilik önce burada görünecek." />
+              ) : (
+                <ul className="grid gap-3">
+                  {duyurular.map((d) => (
+                    <DuyuruKarti key={d.id} duyuru={d} />
+                  ))}
+                </ul>
+              )}
+            </Reveal>
+          </div>
 
-          {/* Hata anında yukarıdaki kutu yeterli; ikinci uyarı basılmıyor. */}
+          {/* Hata anında soldaki kutu yeterli; ikinci uyarı basılmıyor. */}
           {!duyuruHatasi && tumKurallar.length > 0 && (
-            <Reveal delay={140} className="mt-8">
+            <Reveal delay={120}>
               <Kurallar kurallar={tumKurallar} />
             </Reveal>
           )}
@@ -268,8 +283,11 @@ function Kurallar({ kurallar }: { kurallar: Duyuru[] }) {
   const gosterilen = kurallar.slice(0, KURAL_ADEDI);
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <h3 className="eyebrow text-gold">Lig kuralları</h3>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow text-gold">Saha içi</p>
+          <h2 className="display mt-2 text-[clamp(2rem,5.5vw,3.2rem)]">Kurallar</h2>
+        </div>
         <Link
           href="/kurallar-ve-duyurular#kurallar"
           className={`${BAGLANTI} border-gold text-gold hover:border-white hover:text-white`}
